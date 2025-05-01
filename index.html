@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitácora de Viajes - Costa Rica (Oscuro - Carreteras/Satélite)</title>
+    <title>Bitácora de Viajes - Costa Rica (Oscuro - Mapas Estándar/Satélite)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
@@ -11,12 +11,39 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         /* Estilo para asegurar que el mapa ocupe el espacio disponible */
-        #map { height: 100%; width: 100%; background-color: #222; /* Fondo oscuro para el contenedor del mapa */ }
+        #map { height: 100%; width: 100%; background-color: #ffffff; /* Cambiado a blanco ya que el mapa por defecto es claro */ }
         /* Asegurar que el contenedor principal ocupe toda la altura y aplicar fuente */
         html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
 
-        /* --- Estilos Modo Oscuro --- */
+        /* --- Estilos Modo Oscuro (Interfaz) --- */
         body { background-color: #111827; /* bg-gray-900 */ } /* Fondo principal oscuro */
+        header, aside, #placeModal > div { background-color: #1f2937; /* bg-gray-800 */ color: #d1d5db /* text-gray-300 */; }
+        header { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        aside { border-left: 1px solid #374151 /* border-gray-700 */; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }
+        #placeModal > div { border: 1px solid #374151; }
+        h1, h2, h3, label { color: #e5e7eb /* text-gray-200 */; }
+        input, select, textarea {
+             background-color: #374151; /* bg-gray-700 */
+             color: #e5e7eb; /* text-gray-200 */
+             border: 1px solid #4b5563; /* border-gray-600 */
+             border-radius: 0.375rem; /* rounded-md */
+        }
+        input:focus, select:focus, textarea:focus {
+             outline: none;
+             border-color: #14b8a6; /* border-teal-500 */
+             box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.5); /* ring-teal-500 */
+        }
+        select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem;}
+        input[type="date"] { color-scheme: dark; }
+        #placesList li { border: 1px solid #374151; }
+        #placesList li:hover { background-color: #374151; }
+        #placesList strong { color: #5eead4 /* text-teal-300 */; }
+        #placesList span, #placesList i, #placesList .italic { color: #9ca3af /* text-gray-400 */; }
+        #messageBox { background-color: rgba(17, 24, 39, 0.85); /* bg-gray-900/85 */ color: white; }
+        #closeModalBtn { color: #9ca3af; }
+        #closeModalBtn:hover { color: #e5e7eb; }
+        .modal-content .border-b { border-color: #374151; }
+        .modal-content .border-t { border-color: #374151; }
 
         /* Estilos personalizados para botones en modo oscuro */
         .custom-btn {
@@ -70,6 +97,9 @@
         .leaflet-control-layers label {
             margin-bottom: 0.3em; /* Espaciado entre opciones */
              font-weight: 500;
+             display: flex; /* Para alinear icono y texto si se añadieran iconos */
+             align-items: center;
+             gap: 5px;
         }
         .leaflet-control-layers-separator {
              border-top: 1px solid #4b5563; /* bg-gray-600 */
@@ -80,7 +110,7 @@
         }
 
 
-        /* Ajustes generales para modo oscuro */
+        /* Ajustes generales */
         .modal-content {
             max-height: 80vh;
             overflow-y: auto;
@@ -120,6 +150,9 @@
             /* Hacer control de capas un poco más grande en móvil */
             .leaflet-control-layers {
                 font-size: 14px;
+            }
+            .leaflet-control-layers label {
+                padding: 2px 0; /* Más espacio vertical en móvil */
             }
         }
     </style>
@@ -287,47 +320,40 @@
                 zoom: defaultZoom,
                 maxBounds: costaRicaBounds,
                 maxBoundsViscosity: 0.9,
-                // layers: [cartoVoyagerBase] // Añadir capa por defecto aquí si se desea
             });
 
             // --- Definición de Capas Base ---
-            const cartoVoyagerBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                minZoom: 7,
-                maxZoom: 20
-            });
 
-            const cartoVoyagerLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-                attribution: '',
-                subdomains: 'abcd',
-                minZoom: 7,
-                maxZoom: 20,
-                pane: 'overlayPane' // Asegura que las etiquetas estén encima
-            });
-
-            // Combinar Voyager Base + Labels en un LayerGroup para el control
-            const voyagerMap = L.layerGroup([cartoVoyagerBase, cartoVoyagerLabels]);
-
+            // 1. Mapa Satelital (ESRI)
             const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
                  minZoom: 7,
-                 maxZoom: 18 // ESRI Satélite puede tener un zoom máximo diferente
+                 maxZoom: 18
             });
 
+            // 2. Mapa Estándar OpenStreetMap (con todas las etiquetas)
+            const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                minZoom: 7,
+                maxZoom: 19 // OSM tiene buen nivel de zoom
+            });
+
+
             // --- Objeto de Capas Base para el Control ---
+            // *** CAMBIO: Eliminada la opción "Carreteras (Oscuro)" ***
             const baseMaps = {
-                "Carreteras": voyagerMap, // Usar el LayerGroup como opción
+                "Estándar (Detallado)": osmStandard,
                 "Satélite": esriSatellite
             };
 
             // Añadir la capa por defecto al mapa
-             voyagerMap.addTo(map); // Mostrar Voyager por defecto
+            // *** CAMBIO: Añadir osmStandard por defecto ***
+             osmStandard.addTo(map);
 
             // --- Crear y Añadir Control de Capas ---
-            layerControl = L.control.layers(baseMaps, null, { // El segundo argumento (null) es para capas de superposición (overlays), que no usamos ahora
-                position: 'topright', // Posición del control
-                collapsed: true // Mostrar colapsado por defecto (solo icono)
+            layerControl = L.control.layers(baseMaps, null, {
+                position: 'topright',
+                collapsed: true
             }).addTo(map);
 
             // Añade el grupo de marcadores al mapa
@@ -338,6 +364,22 @@
 
             // Cargar lugares guardados
             loadPlaces();
+
+            // *** CAMBIO: Ajustar el color de fondo del contenedor del mapa según la capa inicial ***
+            map.getContainer().style.backgroundColor = '#ffffff'; // Blanco para OSM estándar
+
+            // *** CAMBIO: Escuchar cambios de capa para ajustar el fondo si es necesario ***
+            map.on('baselayerchange', function (e) {
+                // La capa satelital también se ve bien con fondo blanco o gris claro
+                // Podrías poner un fondo más oscuro si prefieres para satélite:
+                // if (e.name === "Satélite") {
+                //     map.getContainer().style.backgroundColor = '#222222';
+                // } else {
+                //     map.getContainer().style.backgroundColor = '#ffffff';
+                // }
+                // Por ahora, lo dejamos blanco para ambas
+                 map.getContainer().style.backgroundColor = '#ffffff';
+            });
         }
 
         // Maneja el clic en el mapa
@@ -472,14 +514,14 @@
             filteredPlaces.forEach(place => {
                 // Marcador en mapa
                 const marker = L.marker([place.lat, place.lng], {
-                     icon: createCustomIcon(place.category) // Icono personalizado oscuro
+                     // *** CAMBIO: Usar icono estándar de Leaflet para mejor visibilidad en mapas claros ***
+                     // icon: createCustomIcon(place.category) // Icono personalizado oscuro
                 })
                     .bindPopup(`<b>${place.name}</b><br>${place.category}<br><button class="viewDetailsBtn" data-id="${place.id}">Ver Detalles</button>`)
                     .addTo(markers);
 
-                 // Elemento en lista oscura
+                 // Elemento en lista oscura (sin cambios)
                 const listItem = document.createElement('li');
-                // Estilos oscuros para la lista
                 listItem.className = 'p-3 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer flex justify-between items-center transition duration-150';
                 listItem.innerHTML = `
                     <div>
@@ -491,7 +533,8 @@
                 listItem.addEventListener('click', () => {
                     map.setView([place.lat, place.lng], 15);
                     markers.eachLayer(m => {
-                        if (m.getLatLng().lat === place.lat && m.getLatLng().lng === place.lng) {
+                        // Comparar coordenadas con una pequeña tolerancia por si acaso
+                        if (Math.abs(m.getLatLng().lat - place.lat) < 0.00001 && Math.abs(m.getLatLng().lng - place.lng) < 0.00001) {
                             m.openPopup();
                         }
                     });
@@ -514,34 +557,10 @@
             });
         }
 
-        // Crea iconos personalizados (colores ajustados para modo oscuro)
-        function createCustomIcon(category) {
-            // Colores base más brillantes o claros para destacar en fondo oscuro/mapa oscuro
-            let iconColorClass = 'bg-teal-400'; // Teal más brillante
+        // *** ELIMINADO: Ya no se usa el icono personalizado DivIcon ***
+        // function createCustomIcon(category) { ... }
 
-            switch (category) {
-                case 'Restaurante': iconColorClass = 'bg-red-500'; break;
-                case 'Parque Nacional': iconColorClass = 'bg-green-500'; break;
-                case 'Playa': iconColorClass = 'bg-yellow-400'; break;
-                case 'Mirador': iconColorClass = 'bg-purple-500'; break;
-                case 'Ciudad': iconColorClass = 'bg-gray-400'; break;
-                case 'Otro': iconColorClass = 'bg-blue-500'; break;
-            }
-
-             return L.divIcon({
-                 // Borde claro para destacar sobre mapa oscuro
-                html: `<span class="flex h-5 w-5 relative">
-                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${iconColorClass} opacity-75"></span>
-                           <span class="relative inline-flex rounded-full h-5 w-5 ${iconColorClass} border-2 border-gray-200"></span> {/* Borde claro */}
-                       </span>`,
-                className: '',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10],
-                popupAnchor: [0, -10]
-            });
-        }
-
-        // Geolocalización
+        // Geolocalización (Función existente y verificada)
         function findMe() {
             findMeBtn.disabled = true;
             findMeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span class="hidden sm:inline ml-2">Buscando...</span>';
@@ -551,13 +570,9 @@
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     map.setView([lat, lng], 14);
-                    // Icono de ubicación actual (azul brillante con borde claro)
-                    L.marker([lat, lng], {
-                         icon: L.divIcon({
-                            html: `<span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 border-4 border-gray-200 shadow-lg"></span>`, // Borde claro
-                            className: '', iconSize: [24, 24], iconAnchor: [12, 12]
-                        })
-                    }).addTo(map)
+                    // Usar marcador por defecto para "Estás aquí" también
+                    L.marker([lat, lng])
+                      .addTo(map)
                       .bindPopup("<b>¡Estás aquí!</b><br>Puedes hacer clic en otro lugar para guardarlo.").openPopup();
                     showMessage("Ubicación encontrada");
                     findMeBtn.disabled = false;
@@ -590,7 +605,7 @@
         closeModalBtn.addEventListener('click', closeModal);
         placeForm.addEventListener('submit', savePlace);
         categoryFilter.addEventListener('change', renderPlaces);
-        findMeBtn.addEventListener('click', findMe);
+        findMeBtn.addEventListener('click', findMe); // Listener para el botón "Encontrarme"
         toggleListBtn.addEventListener('click', toggleSidebar);
         deletePlaceBtn.addEventListener('click', deletePlace);
 
