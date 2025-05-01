@@ -46,12 +46,19 @@
         .popup-actions button, .popup-actions a {
             margin-right: 8px;
         }
-        /* Ocultar scrollbar en modal si no es necesario */
+        /* Scrollbar en modal */
         #place-modal .modal-content-area {
              scrollbar-width: thin;
              scrollbar-color: #9ca3af #e5e7eb;
         }
-
+        body.modal-open {
+            overflow: hidden;
+        }
+        @media (min-width: 640px) { /* sm breakpoint */
+             body.modal-open {
+                 overflow: auto;
+             }
+        }
 
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -113,15 +120,17 @@
             </div>
         </aside>
 
-        <div id="map" class="flex-1 z-10"></div>
+        <div id="map" class="flex-1 z-10">
+             <p id="map-error-message" class="p-4 text-red-600 font-semibold hidden">Error al cargar el mapa. Intenta recargar la página.</p>
+        </div>
     </div>
 
-    {/* Modal - Contenedor principal con padding */}
-    <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40 hidden p-4">
-        {/* Contenedor interno con ancho responsivo y scroll */}
-         <div class="bg-white rounded-lg shadow-xl w-full sm:max-w-lg md:max-w-xl max-h-[90vh] flex flex-col">
+    {/* Modal - Contenedor principal sin padding en móvil */}
+    <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40 hidden sm:p-4">
+        {/* Contenedor interno a pantalla completa en móvil */}
+         <div class="bg-white w-full h-full sm:rounded-lg sm:shadow-xl sm:max-w-lg md:max-w-xl sm:max-h-[90vh] flex flex-col">
              {/* Área de contenido con scroll interno */}
-             <div class="modal-content-area overflow-y-auto">
+             <div class="modal-content-area overflow-y-auto flex-1">
                  <form id="place-form" class="p-6 space-y-4">
                      <input type="hidden" id="place-id">
                      <input type="hidden" id="place-lat">
@@ -193,6 +202,7 @@
         let layerControl;
 
         // --- Elementos del DOM ---
+        const bodyElement = document.body;
         const sidebar = document.getElementById('sidebar');
         const toggleListBtn = document.getElementById('toggle-list-btn');
         const closeSidebarBtn = document.getElementById('close-sidebar-btn');
@@ -220,12 +230,20 @@
         const exportBtn = document.getElementById('export-btn');
         const importBtn = document.getElementById('import-btn');
         const importFileInput = document.getElementById('import-file');
+        const mapErrorMessage = document.getElementById('map-error-message'); // **NUEVO: Referencia al mensaje de error**
 
         // --- Funciones ---
 
         // Inicializar Mapa Leaflet
         function initMap() {
-            console.log("Initializing map...");
+            console.log("Attempting map initialization...");
+            // **NUEVO: Verificar si Leaflet (L) está disponible**
+            if (typeof L === 'undefined') {
+                console.error("Leaflet library (L) not loaded!");
+                mapErrorMessage.classList.remove('hidden'); // Mostrar mensaje de error
+                return; // Detener la inicialización
+            }
+
             try {
                 map = L.map('map').setView(COSTA_RICA_CENTER, DEFAULT_ZOOM);
                 console.log("Map object created.");
@@ -258,7 +276,7 @@
                         console.log("Forcing map invalidateSize().");
                         map.invalidateSize();
                     }
-                }, 100);
+                }, 150); // Ligero aumento del retraso
 
                 // Evento baselayerchange simplificado
                 map.on('baselayerchange', function(e) {
@@ -271,25 +289,24 @@
                 map.on('click', onMapClick);
                 loadPlaces();
                 console.log("Map initialization complete.");
+                mapErrorMessage.classList.add('hidden'); // Ocultar mensaje de error si todo fue bien
 
             } catch (error) {
                 console.error("CRITICAL ERROR during map initialization:", error);
-                const mapDiv = document.getElementById('map');
-                if (mapDiv) {
-                    mapDiv.innerHTML = '<p class="p-4 text-red-600 font-semibold">Error al cargar el mapa. Intenta recargar la página.</p>';
-                }
+                mapErrorMessage.classList.remove('hidden'); // Mostrar mensaje de error
             }
         }
 
         // --- Funciones JS restantes (sin cambios relevantes) ---
+        function openModal() { placeModal.classList.remove('hidden'); bodyElement.classList.add('modal-open'); }
+        function closeModalAndReset() { placeModal.classList.add('hidden'); bodyElement.classList.remove('modal-open'); currentEditingId = null; addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; modalDirectionsBtn.classList.add('hidden'); modalDirectionsBtn.href = "#"; placeForm.reset(); resetRatingStars(); }
         function onMapClick(e) { const { lat, lng } = e.latlng; openModalForNewPlace(lat, lng); }
         async function fetchAddressDetails(lat, lng) { const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es&addressdetails=1`; try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); return await response.json(); } catch (error) { console.error("Error fetching address:", error); return null; } }
         function getCurrentDateString() { const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
-        async function openModalForNewPlace(lat, lng) { currentEditingId = null; placeForm.reset(); resetRatingStars(); placeIdInput.value = ''; placeLatInput.value = lat; placeLngInput.value = lng; modalTitle.textContent = 'Añadir Nuevo Lugar'; savePlaceBtn.textContent = 'Guardar Lugar'; deletePlaceBtn.classList.add('hidden'); sharePlaceBtn.classList.add('hidden'); modalDirectionsBtn.classList.add('hidden'); placeVisitedInput.value = getCurrentDateString(); placeNotesInput.value = ''; placeNameInput.value = ''; placeNotesInput.classList.add('hidden'); addressLoadingMessage.classList.remove('hidden'); placeModal.classList.remove('hidden'); const addressData = await fetchAddressDetails(lat, lng); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); let potentialName = ''; let fullAddress = ''; if (addressData) { fullAddress = addressData.display_name || ''; const addressDetails = addressData.address || {}; potentialName = addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.natural || addressDetails.building || addressDetails.man_made || addressDetails.leisure || addressDetails.road || ''; placeNotesInput.value = `Dirección aprox.: ${fullAddress}\n--------------------\n`; } else { placeNotesInput.placeholder = "No se pudo obtener la dirección automáticamente."; } if (potentialName) { placeNameInput.value = potentialName; } }
-        function openModalForEditing(placeId) { const place = places.find(p => p.id === placeId); if (!place) return; currentEditingId = placeId; placeForm.reset(); resetRatingStars(); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; placeIdInput.value = place.id; placeLatInput.value = place.lat; placeLngInput.value = place.lng; placeNameInput.value = place.name; placeNotesInput.value = place.notes || ''; placeCategoryInput.value = place.category || 'Otro'; placeVisitedInput.value = place.visitedDate || ''; setRatingStars(place.rating || 0); modalTitle.textContent = 'Editar Lugar'; savePlaceBtn.textContent = 'Guardar Cambios'; deletePlaceBtn.classList.remove('hidden'); const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`; modalDirectionsBtn.href = directionsUrl; modalDirectionsBtn.classList.remove('hidden'); if ('share' in navigator) { sharePlaceBtn.classList.remove('hidden'); } else { sharePlaceBtn.classList.add('hidden'); } placeModal.classList.remove('hidden'); }
-        function closeModal() { placeModal.classList.add('hidden'); currentEditingId = null; addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; modalDirectionsBtn.classList.add('hidden'); modalDirectionsBtn.href = "#"; }
-        function savePlace(event) { event.preventDefault(); const id = placeIdInput.value || `place_${Date.now()}`; const lat = parseFloat(placeLatInput.value); const lng = parseFloat(placeLngInput.value); const name = placeNameInput.value.trim(); const notes = placeNotesInput.value.trim(); const category = placeCategoryInput.value; const rating = parseInt(placeRatingValueInput.value, 10); const visitedDate = placeVisitedInput.value; if (!name) { alert('El nombre del lugar es obligatorio.'); return; } if (isNaN(lat) || isNaN(lng)) { alert('Error: Coordenadas inválidas.'); return; } const placeData = { id, lat, lng, name, notes, category, rating, visitedDate }; if (currentEditingId) { const index = places.findIndex(p => p.id === currentEditingId); if (index > -1) places[index] = placeData; } else { places.push(placeData); } savePlacesToLocalStorage(); renderPlaces(); closeModal(); }
-        function deletePlace() { if (!currentEditingId) return; if (confirm(`¿Eliminar "${placeNameInput.value}"?`)) { places = places.filter(p => p.id !== currentEditingId); savePlacesToLocalStorage(); renderPlaces(); closeModal(); } }
+        async function openModalForNewPlace(lat, lng) { currentEditingId = null; placeForm.reset(); resetRatingStars(); placeIdInput.value = ''; placeLatInput.value = lat; placeLngInput.value = lng; modalTitle.textContent = 'Añadir Nuevo Lugar'; savePlaceBtn.textContent = 'Guardar Lugar'; deletePlaceBtn.classList.add('hidden'); sharePlaceBtn.classList.add('hidden'); modalDirectionsBtn.classList.add('hidden'); placeVisitedInput.value = getCurrentDateString(); placeNotesInput.value = ''; placeNameInput.value = ''; placeNotesInput.classList.add('hidden'); addressLoadingMessage.classList.remove('hidden'); openModal(); const addressData = await fetchAddressDetails(lat, lng); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); let potentialName = ''; let fullAddress = ''; if (addressData) { fullAddress = addressData.display_name || ''; const addressDetails = addressData.address || {}; potentialName = addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.natural || addressDetails.building || addressDetails.man_made || addressDetails.leisure || addressDetails.road || ''; placeNotesInput.value = `Dirección aprox.: ${fullAddress}\n--------------------\n`; } else { placeNotesInput.placeholder = "No se pudo obtener la dirección automáticamente."; } if (potentialName) { placeNameInput.value = potentialName; } }
+        function openModalForEditing(placeId) { const place = places.find(p => p.id === placeId); if (!place) return; currentEditingId = placeId; placeForm.reset(); resetRatingStars(); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; placeIdInput.value = place.id; placeLatInput.value = place.lat; placeLngInput.value = place.lng; placeNameInput.value = place.name; placeNotesInput.value = place.notes || ''; placeCategoryInput.value = place.category || 'Otro'; placeVisitedInput.value = place.visitedDate || ''; setRatingStars(place.rating || 0); modalTitle.textContent = 'Editar Lugar'; savePlaceBtn.textContent = 'Guardar Cambios'; deletePlaceBtn.classList.remove('hidden'); const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`; modalDirectionsBtn.href = directionsUrl; modalDirectionsBtn.classList.remove('hidden'); if ('share' in navigator) { sharePlaceBtn.classList.remove('hidden'); } else { sharePlaceBtn.classList.add('hidden'); } openModal(); }
+        function savePlace(event) { event.preventDefault(); const id = placeIdInput.value || `place_${Date.now()}`; const lat = parseFloat(placeLatInput.value); const lng = parseFloat(placeLngInput.value); const name = placeNameInput.value.trim(); const notes = placeNotesInput.value.trim(); const category = placeCategoryInput.value; const rating = parseInt(placeRatingValueInput.value, 10); const visitedDate = placeVisitedInput.value; if (!name) { alert('El nombre del lugar es obligatorio.'); return; } if (isNaN(lat) || isNaN(lng)) { alert('Error: Coordenadas inválidas.'); return; } const placeData = { id, lat, lng, name, notes, category, rating, visitedDate }; if (currentEditingId) { const index = places.findIndex(p => p.id === currentEditingId); if (index > -1) places[index] = placeData; } else { places.push(placeData); } savePlacesToLocalStorage(); renderPlaces(); closeModalAndReset(); }
+        function deletePlace() { if (!currentEditingId) return; if (confirm(`¿Eliminar "${placeNameInput.value}"?`)) { places = places.filter(p => p.id !== currentEditingId); savePlacesToLocalStorage(); renderPlaces(); closeModalAndReset(); } }
         function sharePlace() { if (!currentEditingId || !('share' in navigator)) return; const place = places.find(p => p.id === currentEditingId); if (!place) return; const shareUrl = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`; const shareData = { title: `Visité: ${place.name}`, text: `Mira este lugar: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes : ''}`, url: shareUrl }; navigator.share(shareData).catch(error => console.error('Error sharing:', error)); }
         function savePlacesToLocalStorage() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(places)); }
         function loadPlaces() { const storedPlaces = localStorage.getItem(LOCAL_STORAGE_KEY); if (storedPlaces) { try { places = JSON.parse(storedPlaces); if (!Array.isArray(places)) places = []; } catch (e) { places = []; } } else { places = []; } renderPlaces(); }
@@ -300,18 +317,21 @@
         function exportData() { if (places.length === 0) return alert("No hay lugares para exportar."); const dataStr = JSON.stringify(places, null, 2); const dataBlob = new Blob([dataStr], { type: 'application/json' }); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); link.href = url; link.download = `mis_lugares_cr_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); } function triggerImport() { importFileInput.click(); } function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm("Importar reemplazará los lugares actuales. ¿Continuar?")) { importFileInput.value = ''; return; } const reader = new FileReader(); reader.onload = function(e) { try { const importedPlaces = JSON.parse(e.target.result); if (Array.isArray(importedPlaces) && (importedPlaces.length === 0 || (importedPlaces[0].lat && importedPlaces[0].lng && importedPlaces[0].name && importedPlaces[0].id))) { places = importedPlaces; savePlacesToLocalStorage(); renderPlaces(categoryFilter.value); alert(`Importados ${places.length} lugares.`); if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) sidebar.classList.add('-translate-x-full'); } else { alert("Error: Formato de archivo inválido."); } } catch (error) { console.error("Error parsing JSON:", error); alert("Error al leer el archivo JSON."); } finally { importFileInput.value = ''; } }; reader.onerror = function() { alert("Error al leer archivo."); importFileInput.value = ''; }; reader.readAsText(file); }
 
         // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM fully loaded and parsed");
-            initMap();
-            setupRatingStars();
+        // **MODIFICADO: Usar window.onload para iniciar**
+        window.onload = () => {
+            console.log("Window finished loading. Initializing app...");
+            initMap(); // Iniciar mapa aquí
+            if (map) { // Solo configurar estrellas si el mapa se inicializó
+                 setupRatingStars();
+            }
 
-            // Resto de listeners...
+            // Configurar listeners generales aquí también
             toggleListBtn.addEventListener('click', () => { sidebar.classList.toggle('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350); });
             closeSidebarBtn.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350); });
             locateMeBtn.addEventListener('click', locateUser);
             categoryFilter.addEventListener('change', (e) => renderPlaces(e.target.value));
             placeForm.addEventListener('submit', savePlace);
-            cancelModalBtn.addEventListener('click', closeModal);
+            cancelModalBtn.addEventListener('click', closeModalAndReset);
             deletePlaceBtn.addEventListener('click', deletePlace);
             sharePlaceBtn.addEventListener('click', sharePlace);
             exportBtn.addEventListener('click', exportData);
@@ -324,11 +344,10 @@
                 }
             });
             window.addEventListener('resize', () => { if(map) map.invalidateSize(); });
-        });
+        };
+
+        // Listener DOMContentLoaded eliminado
 
     </script>
 </body>
 </html>
-```
-
-Espero que esta versión te sea más útil. ¡Avísame si necesitas algo m
