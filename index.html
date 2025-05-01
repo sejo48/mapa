@@ -10,66 +10,73 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        /* Estilos adicionales para asegurar que el mapa ocupe espacio */
-        #map { height: calc(100vh - 4rem); /* Altura total menos la cabecera */ }
-        /* Ocultar scrollbars innecesarios */
-        body { overflow: hidden; }
-        /* Estilo para el marcador de ubicación actual */
-        .current-location-marker {
-            background-color: #3b82f6; /* Azul */
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 0 2px #3b82f6;
+        /* Estilos generales */
+        #map {
+            height: calc(100vh - 4rem);
+            background-color: #e5e7eb; /* gray-200 */
         }
-        /* Asegurar que los popups de Leaflet usen la fuente Inter */
+        body { overflow: hidden; }
+
+        /* Marcador ubicación actual */
+        .current-location-marker {
+            background-color: #3b82f6; /* blue-500 */
+            width: 16px; height: 16px; border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #3b82f6; /* blue-500 */
+        }
+        /* Popups de Leaflet con fuente Inter */
         .leaflet-popup-content-wrapper, .leaflet-popup-tip {
             font-family: 'Inter', sans-serif;
+            background-color: white;
+            color: #1f2937; /* gray-800 */
+            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
         }
-        /* Estilo para estrellas de calificación */
+        /* Estrellas de calificación */
         .star-rating .fa-star { cursor: pointer; }
-        .star-rating .fa-star.selected { color: #facc15; } /* Amarillo */
-        .star-rating .fa-star:not(.selected) { color: #d1d5db; } /* Gris claro */
+        .star-rating .fa-star.selected { color: #facc15; } /* yellow-400 */
+        .star-rating .fa-star:not(.selected) { color: #d1d5db; } /* gray-300 */
 
-        /* Estilo para mensaje de carga en el modal */
+        /* Mensaje de carga */
         #address-loading-message {
             font-style: italic;
-            color: #6b7280; /* gray-500 */
             font-size: 0.875rem; /* text-sm */
+            color: #6b7280; /* gray-500 */
         }
+        /* Botones de acción en popup */
+        .popup-actions button, .popup-actions a {
+            margin-right: 8px;
+        }
+        /* Ocultar scrollbar en modal si no es necesario */
+        #place-modal > div { scrollbar-width: thin; scrollbar-color: #9ca3af #e5e7eb; }
+
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script>
-        // Configuración de Tailwind para usar la fuente Inter
+        // Configuración de Tailwind
         tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
+             theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } }
         }
     </script>
 </head>
-<body class="font-sans flex flex-col h-screen bg-gray-100">
+<body class="font-sans flex flex-col h-screen bg-gray-100 text-gray-900">
 
-    <header class="bg-white shadow-md p-3 flex justify-between items-center z-20 h-16">
+    <header class="bg-white shadow-md p-3 flex justify-between items-center z-20 h-16 border-b">
         <button id="toggle-list-btn" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-150">
             <i class="fas fa-list fa-lg"></i>
         </button>
         <h1 class="text-xl font-semibold text-gray-800">Mis Lugares CR</h1>
-        <button id="locate-me-btn" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-150">
-            <i class="fas fa-crosshairs fa-lg"></i>
-        </button>
+        <div class="flex items-center gap-2">
+            <button id="locate-me-btn" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-150">
+                <i class="fas fa-crosshairs fa-lg"></i>
+            </button>
+        </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden relative">
-        <aside id="sidebar" class="absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white shadow-lg z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
-            <div class="p-4 border-b flex justify-between items-center">
+        <aside id="sidebar" class="absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white shadow-lg z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r">
+             <div class="p-4 border-b flex justify-between items-center">
                 <h2 class="text-lg font-semibold">Lugares Guardados</h2>
                 <button id="close-sidebar-btn" class="md:hidden text-gray-500 hover:text-red-500 p-1">
                     <i class="fas fa-times fa-lg"></i>
@@ -77,7 +84,7 @@
             </div>
             <div class="p-3 border-b">
                 <label for="category-filter" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Categoría:</label>
-                <select id="category-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <select id="category-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-gray-900">
                     <option value="all">Todas</option>
                     <option value="Restaurante">Restaurante</option>
                     <option value="Parque">Parque</option>
@@ -105,33 +112,32 @@
         <div id="map" class="flex-1 z-10"></div>
     </div>
 
-    <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40 hidden p-4">
+        {/* Contenido del Modal */}
+         <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <form id="place-form" class="p-6 space-y-4">
-                <input type="hidden" id="place-id"> <input type="hidden" id="place-lat">
+                <input type="hidden" id="place-id">
+                <input type="hidden" id="place-lat">
                 <input type="hidden" id="place-lng">
 
                 <h3 id="modal-title" class="text-xl font-semibold text-gray-800 mb-4">Añadir Nuevo Lugar</h3>
 
                 <div>
                     <label for="place-name" class="block text-sm font-medium text-gray-700">Nombre <span class="text-red-500">*</span></label>
-                    <input type="text" id="place-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="text" id="place-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400">
                 </div>
 
                 <div>
                     <label for="place-notes" class="block text-sm font-medium text-gray-700">Notas/Descripción</label>
-                    <textarea id="place-notes" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
-                     <p id="address-loading-message" class="mt-1 hidden">Buscando dirección...</p> </div>
+                    <textarea id="place-notes" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400"></textarea>
+                     <p id="address-loading-message" class="mt-1 hidden text-gray-500">Buscando dirección...</p>
+                </div>
 
                 <div>
                     <label for="place-category" class="block text-sm font-medium text-gray-700">Categoría</label>
-                    <select id="place-category" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option>Restaurante</option>
-                        <option>Parque</option>
-                        <option>Playa</option>
-                        <option>Tienda</option>
-                        <option>Hotel</option>
-                        <option>Mirador</option>
+                    <select id="place-category" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900">
+                        <option>Restaurante</option> <option>Parque</option> <option>Playa</option>
+                        <option>Tienda</option> <option>Hotel</option> <option>Mirador</option>
                         <option>Otro</option>
                     </select>
                 </div>
@@ -139,10 +145,8 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Calificación</label>
                     <div id="place-rating" class="mt-1 flex space-x-1 star-rating">
-                        <i class="far fa-star" data-value="1"></i>
-                        <i class="far fa-star" data-value="2"></i>
-                        <i class="far fa-star" data-value="3"></i>
-                        <i class="far fa-star" data-value="4"></i>
+                        <i class="far fa-star" data-value="1"></i> <i class="far fa-star" data-value="2"></i>
+                        <i class="far fa-star" data-value="3"></i> <i class="far fa-star" data-value="4"></i>
                         <i class="far fa-star" data-value="5"></i>
                     </div>
                     <input type="hidden" id="place-rating-value" value="0">
@@ -150,43 +154,35 @@
 
                 <div>
                     <label for="place-visited" class="block text-sm font-medium text-gray-700">Fecha de Visita</label>
-                    <input type="date" id="place-visited" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="date" id="place-visited" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900" style="color-scheme: light;">
                 </div>
 
                 <div class="pt-4 space-y-3">
-                     <button type="submit" id="save-place-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-150 text-lg">
-                        Guardar Lugar
-                    </button>
+                     <button type="submit" id="save-place-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-150 text-lg"> Guardar Lugar </button>
+                     <a id="modal-directions-btn" href="#" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-directions"></i> Cómo llegar (Google Maps) </a>
                      <div class="flex gap-3">
-                         <button type="button" id="share-place-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden">
-                             <i class="fas fa-share-alt"></i> Compartir
-                         </button>
-                         <button type="button" id="delete-place-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 hidden">
-                            <i class="fas fa-trash"></i> Eliminar
-                         </button>
+                         <button type="button" id="share-place-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-share-alt"></i> Compartir </button>
+                         <button type="button" id="delete-place-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 hidden"> <i class="fas fa-trash"></i> Eliminar </button>
                      </div>
-                     <button type="button" id="cancel-modal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-150">
-                        Cancelar
-                    </button>
+                     <button type="button" id="cancel-modal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-150"> Cancelar </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
-
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
         // --- Variables Globales ---
         let map;
-        let places = []; // Array para guardar los lugares
-        let markers = {}; // Objeto para guardar referencias a los marcadores de Leaflet
-        let currentEditingId = null; // ID del lugar que se está editando
-        let currentLocationMarker = null; // Marcador para la ubicación actual
-        const COSTA_RICA_CENTER = [9.7489, -83.7534]; // Centro aproximado de Costa Rica
+        let places = [];
+        let markers = {};
+        let currentEditingId = null;
+        let currentLocationMarker = null;
+        const COSTA_RICA_CENTER = [9.7489, -83.7534];
         const DEFAULT_ZOOM = 8;
         const LOCAL_STORAGE_KEY = 'costaRicaPlacesApp';
+        let osmTile, satelliteTile, topoTile, cartoLabels;
+        let layerControl;
 
         // --- Elementos del DOM ---
         const sidebar = document.getElementById('sidebar');
@@ -212,6 +208,7 @@
         const cancelModalBtn = document.getElementById('cancel-modal-btn');
         const deletePlaceBtn = document.getElementById('delete-place-btn');
         const sharePlaceBtn = document.getElementById('share-place-btn');
+        const modalDirectionsBtn = document.getElementById('modal-directions-btn');
         const exportBtn = document.getElementById('export-btn');
         const importBtn = document.getElementById('import-btn');
         const importFileInput = document.getElementById('import-file');
@@ -220,502 +217,89 @@
 
         // Inicializar Mapa Leaflet
         function initMap() {
-            map = L.map('map').setView(COSTA_RICA_CENTER, DEFAULT_ZOOM);
-
-            // Capas base (Tipos de mapa)
-            const osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            });
-            const satelliteTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-	            attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-            });
-             const topoTile = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-	            maxZoom: 17,
-	            attribution: 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-            });
-
-            osmTile.addTo(map); // Capa por defecto
-
-            const baseMaps = {
-                "Estándar": osmTile,
-                "Satélite": satelliteTile,
-                "Topográfico": topoTile
-            };
-
-            // Capa para las etiquetas (opcional)
-            const cartoLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-	            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-	            subdomains: 'abcd',
-	            maxZoom: 20,
-                pane: 'overlayPane' // Asegura que esté sobre las capas base
-            });
-
-            const overlayMaps = {
-                "Etiquetas": cartoLabels
-            };
-
-            // Control de Capas
-            L.control.layers(baseMaps, overlayMaps, { collapsed: true }).addTo(map);
-
-            // Evento de clic en el mapa para añadir lugar
-            map.on('click', onMapClick);
-
-            // Cargar lugares guardados al inicio
-            loadPlaces();
-        }
-
-        // Manejar clic en el mapa
-        function onMapClick(e) {
-            const { lat, lng } = e.latlng;
-            openModalForNewPlace(lat, lng);
-        }
-
-        // Función para obtener detalles de dirección (Geocodificación Inversa)
-        async function fetchAddressDetails(lat, lng) {
-            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es&addressdetails=1`; // Añadido addressdetails=1
-
+            console.log("Initializing map...");
             try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
-                }
-                const data = await response.json();
-                // Devolver el objeto completo para extraer más detalles si es necesario
-                return data;
-            } catch (error) {
-                console.error("Error al obtener la dirección:", error);
-                return null;
-            }
-        }
+                map = L.map('map').setView(COSTA_RICA_CENTER, DEFAULT_ZOOM);
+                console.log("Map object created.");
 
-        // Función para obtener la fecha actual en formato YYYY-MM-DD
-        function getCurrentDateString() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0'); // Meses son 0-indexados
-            const day = String(today.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+                // Definir capas base
+                osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+                satelliteTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
+                topoTile = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
+                console.log("Tile layers defined.");
 
-        // MODIFICADO: Abrir modal para un nuevo lugar (ahora es async y autocompleta)
-        async function openModalForNewPlace(lat, lng) {
-            currentEditingId = null;
-            placeForm.reset();
-            resetRatingStars();
-            placeIdInput.value = '';
-            placeLatInput.value = lat;
-            placeLngInput.value = lng;
-            modalTitle.textContent = 'Añadir Nuevo Lugar';
-            savePlaceBtn.textContent = 'Guardar Lugar';
-            deletePlaceBtn.classList.add('hidden');
-            sharePlaceBtn.classList.add('hidden');
+                // Añadir capa OSM por defecto INMEDIATAMENTE
+                console.log("Adding default OSM layer.");
+                osmTile.addTo(map);
 
-            // **NUEVO: Establecer fecha de visita actual**
-            placeVisitedInput.value = getCurrentDateString();
+                const baseMaps = {
+                    "Estándar": osmTile, "Satélite": satelliteTile,
+                    "Topográfico": topoTile
+                };
 
-            // Mostrar mensaje de carga y ocultar campo de notas temporalmente
-            placeNotesInput.value = '';
-            placeNameInput.value = ''; // Limpiar nombre también
-            placeNotesInput.classList.add('hidden');
-            addressLoadingMessage.classList.remove('hidden');
-            placeModal.classList.remove('hidden');
+                // Capa de etiquetas
+                cartoLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { attribution: '© CARTO', subdomains: 'abcd', maxZoom: 20, pane: 'overlayPane' });
+                const overlayMaps = { "Etiquetas": cartoLabels };
 
-            // Intentar obtener la dirección (ahora devuelve el objeto completo)
-            const addressData = await fetchAddressDetails(lat, lng);
+                layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: true }).addTo(map);
+                console.log("Layer control added.");
 
-            // Ocultar mensaje de carga y mostrar campo de notas
-            addressLoadingMessage.classList.add('hidden');
-            placeNotesInput.classList.remove('hidden');
-
-            let potentialName = '';
-            let fullAddress = '';
-
-            if (addressData) {
-                fullAddress = addressData.display_name || '';
-                // **NUEVO: Intentar extraer un nombre significativo**
-                // Prioridad: amenity, shop, tourism, historic, natural, building, man_made, leisure
-                const addressDetails = addressData.address || {};
-                potentialName = addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.natural || addressDetails.building || addressDetails.man_made || addressDetails.leisure || addressDetails.road || ''; // Último recurso: la calle
-
-                // Poner dirección en notas
-                placeNotesInput.value = `Dirección aprox.: ${fullAddress}\n--------------------\n`;
-            } else {
-                placeNotesInput.placeholder = "No se pudo obtener la dirección automáticamente. Añade tus notas aquí.";
-            }
-
-            // **NUEVO: Establecer nombre y foco**
-            if (potentialName) {
-                placeNameInput.value = potentialName;
-                placeNotesInput.focus(); // Si encontramos nombre, enfocar notas
-            } else {
-                 placeNameInput.focus(); // Si no, enfocar nombre para que el usuario lo llene
-            }
-        }
-
-        // Abrir modal para editar un lugar existente (sin cambios aquí)
-        function openModalForEditing(placeId) {
-            const place = places.find(p => p.id === placeId);
-            if (!place) return;
-
-            currentEditingId = placeId;
-            placeForm.reset();
-            resetRatingStars();
-
-            addressLoadingMessage.classList.add('hidden');
-            placeNotesInput.classList.remove('hidden');
-            placeNotesInput.placeholder = "";
-
-            placeIdInput.value = place.id;
-            placeLatInput.value = place.lat;
-            placeLngInput.value = place.lng;
-            placeNameInput.value = place.name;
-            placeNotesInput.value = place.notes || '';
-            placeCategoryInput.value = place.category || 'Otro';
-            // **IMPORTANTE: NO sobreescribir la fecha guardada al editar**
-            placeVisitedInput.value = place.visitedDate || '';
-            setRatingStars(place.rating || 0);
-
-            modalTitle.textContent = 'Editar Lugar';
-            savePlaceBtn.textContent = 'Guardar Cambios';
-            deletePlaceBtn.classList.remove('hidden');
-            if ('share' in navigator) {
-                sharePlaceBtn.classList.remove('hidden');
-            } else {
-                 sharePlaceBtn.classList.add('hidden');
-            }
-            placeModal.classList.remove('hidden');
-            placeNameInput.focus(); // Enfocar nombre al editar
-        }
-
-        // Cerrar el modal
-        function closeModal() {
-            placeModal.classList.add('hidden');
-            currentEditingId = null;
-            addressLoadingMessage.classList.add('hidden');
-            placeNotesInput.classList.remove('hidden');
-            placeNotesInput.placeholder = "";
-        }
-
-        // Guardar lugar (nuevo o editado) - Sin cambios relevantes aquí
-        function savePlace(event) {
-            event.preventDefault();
-
-            const id = placeIdInput.value || `place_${Date.now()}`;
-            const lat = parseFloat(placeLatInput.value);
-            const lng = parseFloat(placeLngInput.value);
-            const name = placeNameInput.value.trim();
-            const notes = placeNotesInput.value.trim();
-            const category = placeCategoryInput.value;
-            const rating = parseInt(placeRatingValueInput.value, 10);
-            const visitedDate = placeVisitedInput.value; // Ya tiene el valor correcto (nuevo o editado)
-
-            if (!name) {
-                alert('El nombre del lugar es obligatorio.');
-                placeNameInput.focus();
-                return;
-            }
-            if (isNaN(lat) || isNaN(lng)) {
-                alert('Error: Coordenadas inválidas.');
-                return;
-            }
-
-            const placeData = { id, lat, lng, name, notes, category, rating, visitedDate };
-
-            if (currentEditingId) {
-                const index = places.findIndex(p => p.id === currentEditingId);
-                if (index > -1) {
-                    places[index] = placeData;
-                }
-            } else {
-                places.push(placeData);
-            }
-
-            savePlacesToLocalStorage();
-            renderPlaces();
-            closeModal();
-        }
-
-        // Eliminar lugar - Sin cambios
-        function deletePlace() {
-            if (!currentEditingId) return;
-
-            if (confirm(`¿Estás seguro de que quieres eliminar "${placeNameInput.value}"?`)) {
-                places = places.filter(p => p.id !== currentEditingId);
-                savePlacesToLocalStorage();
-                renderPlaces();
-                closeModal();
-            }
-        }
-
-        // Compartir lugar - Sin cambios
-        function sharePlace() {
-            if (!currentEditingId || !('share' in navigator)) return;
-            const place = places.find(p => p.id === currentEditingId);
-            if (!place) return;
-            const shareData = {
-                title: `Visité: ${place.name}`,
-                text: `Mira este lugar que marqué en Costa Rica: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes : ''}`,
-                url: `https://maps.google.com/?q=${place.lat},${place.lng}`
-            };
-            navigator.share(shareData)
-                .then(() => console.log('Lugar compartido con éxito'))
-                .catch((error) => console.error('Error al compartir:', error));
-        }
-
-        // Guardar lugares en localStorage - Sin cambios
-        function savePlacesToLocalStorage() {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(places));
-        }
-
-        // Cargar lugares desde localStorage - Sin cambios
-        function loadPlaces() {
-            const storedPlaces = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (storedPlaces) {
-                try {
-                    places = JSON.parse(storedPlaces);
-                     if (!Array.isArray(places)) {
-                         console.error("Los datos guardados no son un array. Reiniciando.");
-                         places = [];
-                         savePlacesToLocalStorage();
-                     }
-                } catch (e) {
-                     console.error("Error al parsear lugares guardados. Reiniciando.", e);
-                     places = [];
-                     savePlacesToLocalStorage();
-                }
-            } else {
-                places = [];
-            }
-            renderPlaces();
-        }
-
-        // Renderizar lugares en el mapa y la lista - Sin cambios relevantes
-        function renderPlaces(filterCategory = 'all') {
-            Object.values(markers).forEach(marker => map.removeLayer(marker));
-            markers = {};
-            placesListElement.innerHTML = '';
-
-            const filteredPlaces = filterCategory === 'all'
-                ? places
-                : places.filter(p => p.category === filterCategory);
-
-            if (filteredPlaces.length === 0) {
-                 placesListElement.innerHTML = `<li class="text-center text-gray-500 py-4 px-2">${filterCategory === 'all' ? 'No hay lugares guardados.' : 'No hay lugares en esta categoría.'}</li>`;
-            } else {
-                filteredPlaces.forEach(place => {
-                    if (typeof place.lat !== 'number' || typeof place.lng !== 'number') {
-                        console.warn("Lugar con coordenadas inválidas omitido:", place);
-                        return;
+                // Forzar revisión de tamaño después de un breve instante
+                setTimeout(() => {
+                    if(map) {
+                        console.log("Forcing map invalidateSize().");
+                        map.invalidateSize();
                     }
-                    const marker = L.marker([place.lat, place.lng], {
-                         icon: createCustomIcon()
-                    }).addTo(map);
+                }, 100);
 
-                    let popupContent = `
-                        <div class="font-sans text-sm max-w-xs">
-                            <strong class="text-base block mb-1">${place.name}</strong>
-                            <span class="text-gray-600 block mb-1">Categoría: ${place.category}</span>`;
-                    if (place.rating > 0) {
-                        popupContent += `<span class="text-yellow-500 block mb-1">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</span>`;
+                // Evento baselayerchange simplificado
+                map.on('baselayerchange', function(e) {
+                    console.log(`Base layer changed to: ${e.name}`);
+                    if (layerControl) {
+                        layerControl.collapse();
                     }
-                     // Mostrar fecha si existe
-                    if (place.visitedDate) {
-                         popupContent += `<span class="text-xs text-gray-500 block mb-1">Visitado: ${place.visitedDate}</span>`;
-                    }
-                    if (place.notes) {
-                         const previewNotes = place.notes.length > 100 ? place.notes.substring(0, 100) + '...' : place.notes;
-                         popupContent += `<p class="text-xs text-gray-500 my-1">${previewNotes.replace(/\n/g, '<br>')}</p>`;
-                    }
-                    popupContent += `<button class="mt-2 text-blue-600 hover:underline font-medium" onclick="openModalForEditing('${place.id}')">Ver Detalles</button>
-                        </div>`;
-
-                    marker.bindPopup(popupContent, { maxWidth: 250 });
-                    markers[place.id] = marker;
-
-                    const listItem = document.createElement('li');
-                    listItem.className = 'p-3 border-b hover:bg-gray-100 cursor-pointer flex justify-between items-start gap-2';
-                    listItem.innerHTML = `
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-gray-800 truncate">${place.name}</div>
-                            <div class="text-xs text-gray-500">${place.category} ${place.visitedDate ? '- Visitado: ' + place.visitedDate : ''}</div>
-                             ${place.rating > 0 ? `<div class="text-xs text-yellow-500">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</div>` : ''}
-                        </div>
-                         <button class="flex-shrink-0 text-xs text-blue-500 hover:text-blue-700 pt-1 whitespace-nowrap" onclick="event.stopPropagation(); openModalForEditing('${place.id}')">Editar</button>
-                    `;
-                    listItem.addEventListener('click', (e) => {
-                        map.setView([place.lat, place.lng], 15);
-                        setTimeout(() => {
-                             markers[place.id].openPopup();
-                        }, 100);
-                        if (window.innerWidth < 768) {
-                            sidebar.classList.add('-translate-x-full');
-                        }
-                    });
-                    placesListElement.appendChild(listItem);
                 });
-            }
-        }
 
-        // Crear icono personalizado - Sin cambios
-        function createCustomIcon() {
-            return L.divIcon({
-                html: '<i class="fas fa-map-marker-alt fa-2x text-red-600 drop-shadow-md"></i>',
-                className: 'custom-marker-icon',
-                iconSize: [30, 42],
-                iconAnchor: [15, 42],
-                popupAnchor: [0, -45]
-            });
-        }
+                map.on('click', onMapClick);
+                loadPlaces();
+                console.log("Map initialization complete.");
 
-        // Función para centrar el mapa en la ubicación del usuario - Sin cambios
-        function locateUser() {
-            if (!navigator.geolocation) {
-                alert('Tu navegador no soporta la geolocalización.');
-                return;
-            }
-            locateMeBtn.classList.add('animate-pulse');
-            navigator.geolocation.getCurrentPosition(position => {
-                const { latitude, longitude } = position.coords;
-                map.setView([latitude, longitude], 14);
-                if (currentLocationMarker) {
-                    map.removeLayer(currentLocationMarker);
+            } catch (error) {
+                console.error("CRITICAL ERROR during map initialization:", error);
+                const mapDiv = document.getElementById('map');
+                if (mapDiv) {
+                    mapDiv.innerHTML = '<p class="p-4 text-red-600 font-semibold">Error al cargar el mapa. Intenta recargar la página.</p>';
                 }
-                 currentLocationMarker = L.marker([latitude, longitude], {
-                    icon: L.divIcon({
-                        className: 'current-location-marker',
-                        iconSize: [16, 16]
-                    })
-                 }).addTo(map);
-                locateMeBtn.classList.remove('animate-pulse');
-            }, error => {
-                console.error("Error obteniendo ubicación: ", error);
-                alert('No se pudo obtener tu ubicación.');
-                locateMeBtn.classList.remove('animate-pulse');
-            }, {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            });
-        }
-
-        // --- Funciones para la Calificación por Estrellas --- (Sin cambios)
-        function setupRatingStars() {
-            const stars = placeRatingElement.querySelectorAll('.fa-star');
-            stars.forEach(star => {
-                star.addEventListener('click', handleStarClick);
-                star.addEventListener('mouseover', handleStarMouseover);
-                star.addEventListener('mouseout', handleStarMouseout);
-            });
-        }
-        function handleStarClick(event) {
-            const value = event.target.getAttribute('data-value');
-            placeRatingValueInput.value = value;
-            setRatingStars(value);
-        }
-        function handleStarMouseover(event) {
-             const value = event.target.getAttribute('data-value');
-             highlightStars(value);
-        }
-        function handleStarMouseout() {
-            setRatingStars(placeRatingValueInput.value);
-        }
-        function highlightStars(value) {
-            const stars = placeRatingElement.querySelectorAll('.fa-star');
-            stars.forEach(star => {
-                const starValue = star.getAttribute('data-value');
-                if (parseInt(starValue) <= parseInt(value)) {
-                    star.classList.remove('far');
-                    star.classList.add('fas', 'selected');
-                } else {
-                    star.classList.remove('fas', 'selected');
-                    star.classList.add('far');
-                }
-            });
-        }
-         function setRatingStars(value) {
-            placeRatingValueInput.value = value;
-            highlightStars(value);
-         }
-        function resetRatingStars() {
-            placeRatingValueInput.value = 0;
-            const stars = placeRatingElement.querySelectorAll('.fa-star');
-            stars.forEach(star => {
-                 star.classList.remove('fas', 'selected');
-                 star.classList.add('far');
-            });
-        }
-
-        // --- Funciones de Exportar/Importar --- (Sin cambios)
-        function exportData() {
-            if (places.length === 0) {
-                alert("No hay lugares para exportar.");
-                return;
             }
-            const dataStr = JSON.stringify(places, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `mis_lugares_cr_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
-        function triggerImport() {
-            importFileInput.click();
-        }
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (!confirm("Importar este archivo reemplazará todos los lugares guardados actualmente. ¿Continuar?")) {
-                importFileInput.value = '';
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedPlaces = JSON.parse(e.target.result);
-                    if (Array.isArray(importedPlaces) && (importedPlaces.length === 0 || (importedPlaces[0].lat && importedPlaces[0].lng && importedPlaces[0].name && importedPlaces[0].id))) {
-                        places = importedPlaces;
-                        savePlacesToLocalStorage();
-                        renderPlaces(categoryFilter.value); // Renderizar con filtro actual
-                        alert(`Se importaron ${places.length} lugares.`);
-                        if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
-                            sidebar.classList.add('-translate-x-full');
-                        }
-                    } else {
-                        alert("Error: El archivo no tiene el formato esperado.");
-                    }
-                } catch (error) {
-                    console.error("Error al parsear JSON:", error);
-                    alert("Error al leer el archivo. Asegúrate de que sea un archivo JSON válido.");
-                } finally {
-                     importFileInput.value = '';
-                }
-            };
-            reader.onerror = function() {
-                 alert("Error al leer el archivo.");
-                 importFileInput.value = '';
-            };
-            reader.readAsText(file);
         }
 
+        // --- Funciones JS restantes (sin cambios relevantes) ---
+        function onMapClick(e) { const { lat, lng } = e.latlng; openModalForNewPlace(lat, lng); }
+        async function fetchAddressDetails(lat, lng) { const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es&addressdetails=1`; try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); return await response.json(); } catch (error) { console.error("Error fetching address:", error); return null; } }
+        function getCurrentDateString() { const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
+        async function openModalForNewPlace(lat, lng) { currentEditingId = null; placeForm.reset(); resetRatingStars(); placeIdInput.value = ''; placeLatInput.value = lat; placeLngInput.value = lng; modalTitle.textContent = 'Añadir Nuevo Lugar'; savePlaceBtn.textContent = 'Guardar Lugar'; deletePlaceBtn.classList.add('hidden'); sharePlaceBtn.classList.add('hidden'); modalDirectionsBtn.classList.add('hidden'); placeVisitedInput.value = getCurrentDateString(); placeNotesInput.value = ''; placeNameInput.value = ''; placeNotesInput.classList.add('hidden'); addressLoadingMessage.classList.remove('hidden'); placeModal.classList.remove('hidden'); const addressData = await fetchAddressDetails(lat, lng); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); let potentialName = ''; let fullAddress = ''; if (addressData) { fullAddress = addressData.display_name || ''; const addressDetails = addressData.address || {}; potentialName = addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.natural || addressDetails.building || addressDetails.man_made || addressDetails.leisure || addressDetails.road || ''; placeNotesInput.value = `Dirección aprox.: ${fullAddress}\n--------------------\n`; } else { placeNotesInput.placeholder = "No se pudo obtener la dirección automáticamente."; } if (potentialName) { placeNameInput.value = potentialName; } }
+        function openModalForEditing(placeId) { const place = places.find(p => p.id === placeId); if (!place) return; currentEditingId = placeId; placeForm.reset(); resetRatingStars(); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; placeIdInput.value = place.id; placeLatInput.value = place.lat; placeLngInput.value = place.lng; placeNameInput.value = place.name; placeNotesInput.value = place.notes || ''; placeCategoryInput.value = place.category || 'Otro'; placeVisitedInput.value = place.visitedDate || ''; setRatingStars(place.rating || 0); modalTitle.textContent = 'Editar Lugar'; savePlaceBtn.textContent = 'Guardar Cambios'; deletePlaceBtn.classList.remove('hidden'); const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`; modalDirectionsBtn.href = directionsUrl; modalDirectionsBtn.classList.remove('hidden'); if ('share' in navigator) { sharePlaceBtn.classList.remove('hidden'); } else { sharePlaceBtn.classList.add('hidden'); } placeModal.classList.remove('hidden'); }
+        function closeModal() { placeModal.classList.add('hidden'); currentEditingId = null; addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; modalDirectionsBtn.classList.add('hidden'); modalDirectionsBtn.href = "#"; }
+        function savePlace(event) { event.preventDefault(); const id = placeIdInput.value || `place_${Date.now()}`; const lat = parseFloat(placeLatInput.value); const lng = parseFloat(placeLngInput.value); const name = placeNameInput.value.trim(); const notes = placeNotesInput.value.trim(); const category = placeCategoryInput.value; const rating = parseInt(placeRatingValueInput.value, 10); const visitedDate = placeVisitedInput.value; if (!name) { alert('El nombre del lugar es obligatorio.'); return; } if (isNaN(lat) || isNaN(lng)) { alert('Error: Coordenadas inválidas.'); return; } const placeData = { id, lat, lng, name, notes, category, rating, visitedDate }; if (currentEditingId) { const index = places.findIndex(p => p.id === currentEditingId); if (index > -1) places[index] = placeData; } else { places.push(placeData); } savePlacesToLocalStorage(); renderPlaces(); closeModal(); }
+        function deletePlace() { if (!currentEditingId) return; if (confirm(`¿Eliminar "${placeNameInput.value}"?`)) { places = places.filter(p => p.id !== currentEditingId); savePlacesToLocalStorage(); renderPlaces(); closeModal(); } }
+        function sharePlace() { if (!currentEditingId || !('share' in navigator)) return; const place = places.find(p => p.id === currentEditingId); if (!place) return; const shareUrl = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`; const shareData = { title: `Visité: ${place.name}`, text: `Mira este lugar: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes : ''}`, url: shareUrl }; navigator.share(shareData).catch(error => console.error('Error sharing:', error)); }
+        function savePlacesToLocalStorage() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(places)); }
+        function loadPlaces() { const storedPlaces = localStorage.getItem(LOCAL_STORAGE_KEY); if (storedPlaces) { try { places = JSON.parse(storedPlaces); if (!Array.isArray(places)) places = []; } catch (e) { places = []; } } else { places = []; } renderPlaces(); }
+        function renderPlaces(filterCategory = 'all') { Object.values(markers).forEach(marker => map.removeLayer(marker)); markers = {}; placesListElement.innerHTML = ''; const filteredPlaces = filterCategory === 'all' ? places : places.filter(p => p.category === filterCategory); if (filteredPlaces.length === 0) { placesListElement.innerHTML = `<li class="text-center text-gray-500 py-4 px-2">${filterCategory === 'all' ? 'No hay lugares.' : 'No hay lugares en esta categoría.'}</li>`; } else { filteredPlaces.forEach(place => { if (typeof place.lat !== 'number' || typeof place.lng !== 'number') return; const marker = L.marker([place.lat, place.lng], { icon: createCustomIcon() }).addTo(map); const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`; let popupContent = ` <div class="font-sans text-sm max-w-xs"> <strong class="text-base block mb-1">${place.name}</strong> <span class="text-gray-600 block mb-1">Categoría: ${place.category}</span>`; if (place.rating > 0) popupContent += `<span class="text-yellow-500 block mb-1">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</span>`; if (place.visitedDate) popupContent += `<span class="text-xs text-gray-500 block mb-1">Visitado: ${place.visitedDate}</span>`; if (place.notes) { const previewNotes = place.notes.length > 100 ? place.notes.substring(0, 100) + '...' : place.notes; popupContent += `<p class="text-xs text-gray-500 my-1">${previewNotes.replace(/\n/g, '<br>')}</p>`; } popupContent += ` <div class="mt-2 pt-2 border-t border-gray-200 popup-actions"> <button class="text-blue-600 hover:underline font-medium text-sm" onclick="openModalForEditing('${place.id}')"><i class="fas fa-edit fa-fw"></i> Detalles</button> <a href="${directionsUrl}" target="_blank" class="text-indigo-600 hover:underline font-medium text-sm inline-block"><i class="fas fa-directions fa-fw"></i> Cómo llegar</a> </div></div>`; marker.bindPopup(popupContent, { maxWidth: 250 }); markers[place.id] = marker; const listItem = document.createElement('li'); listItem.className = 'p-3 border-b hover:bg-gray-100 cursor-pointer flex justify-between items-start gap-2'; listItem.innerHTML = ` <div class="flex-1 min-w-0"> <div class="font-semibold text-gray-800 truncate">${place.name}</div> <div class="text-xs text-gray-500">${place.category} ${place.visitedDate ? '- Visitado: ' + place.visitedDate : ''}</div> ${place.rating > 0 ? `<div class="text-xs text-yellow-500">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</div>` : ''} </div> <button class="flex-shrink-0 text-xs text-blue-500 hover:text-blue-700 pt-1 whitespace-nowrap" onclick="event.stopPropagation(); openModalForEditing('${place.id}')">Editar</button>`; listItem.addEventListener('click', (e) => { map.setView([place.lat, place.lng], 15); setTimeout(() => { markers[place.id].openPopup(); }, 100); if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full'); }); placesListElement.appendChild(listItem); }); } }
+        function createCustomIcon() { return L.divIcon({ html: '<i class="fas fa-map-marker-alt fa-2x text-red-600 drop-shadow-md"></i>', className: 'custom-marker-icon', iconSize: [30, 42], iconAnchor: [15, 42], popupAnchor: [0, -45] }); }
+        function locateUser() { if (!navigator.geolocation) return alert('Geolocalización no soportada.'); locateMeBtn.classList.add('animate-pulse'); navigator.geolocation.getCurrentPosition(position => { const { latitude, longitude } = position.coords; map.setView([latitude, longitude], 14); if (currentLocationMarker) map.removeLayer(currentLocationMarker); currentLocationMarker = L.marker([latitude, longitude], { icon: L.divIcon({ className: 'current-location-marker', iconSize: [16, 16] }) }).addTo(map); locateMeBtn.classList.remove('animate-pulse'); }, error => { console.error("Error locating:", error); alert('No se pudo obtener ubicación.'); locateMeBtn.classList.remove('animate-pulse'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }); }
+        function setupRatingStars() { const stars = placeRatingElement.querySelectorAll('.fa-star'); stars.forEach(star => { star.addEventListener('click', handleStarClick); star.addEventListener('mouseover', handleStarMouseover); star.addEventListener('mouseout', handleStarMouseout); }); } function handleStarClick(event) { const value = event.target.getAttribute('data-value'); placeRatingValueInput.value = value; setRatingStars(value); } function handleStarMouseover(event) { const value = event.target.getAttribute('data-value'); highlightStars(value); } function handleStarMouseout() { setRatingStars(placeRatingValueInput.value); } function highlightStars(value) { const stars = placeRatingElement.querySelectorAll('.fa-star'); stars.forEach(star => { const starValue = star.getAttribute('data-value'); if (parseInt(starValue) <= parseInt(value)) { star.classList.remove('far'); star.classList.add('fas', 'selected'); } else { star.classList.remove('fas', 'selected'); star.classList.add('far'); } }); } function setRatingStars(value) { placeRatingValueInput.value = value; highlightStars(value); } function resetRatingStars() { placeRatingValueInput.value = 0; const stars = placeRatingElement.querySelectorAll('.fa-star'); stars.forEach(star => { star.classList.remove('fas', 'selected'); star.classList.add('far'); }); }
+        function exportData() { if (places.length === 0) return alert("No hay lugares para exportar."); const dataStr = JSON.stringify(places, null, 2); const dataBlob = new Blob([dataStr], { type: 'application/json' }); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); link.href = url; link.download = `mis_lugares_cr_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); } function triggerImport() { importFileInput.click(); } function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm("Importar reemplazará los lugares actuales. ¿Continuar?")) { importFileInput.value = ''; return; } const reader = new FileReader(); reader.onload = function(e) { try { const importedPlaces = JSON.parse(e.target.result); if (Array.isArray(importedPlaces) && (importedPlaces.length === 0 || (importedPlaces[0].lat && importedPlaces[0].lng && importedPlaces[0].name && importedPlaces[0].id))) { places = importedPlaces; savePlacesToLocalStorage(); renderPlaces(categoryFilter.value); alert(`Importados ${places.length} lugares.`); if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) sidebar.classList.add('-translate-x-full'); } else { alert("Error: Formato de archivo inválido."); } } catch (error) { console.error("Error parsing JSON:", error); alert("Error al leer el archivo JSON."); } finally { importFileInput.value = ''; } }; reader.onerror = function() { alert("Error al leer archivo."); importFileInput.value = ''; }; reader.readAsText(file); }
 
-        // --- Event Listeners --- (Sin cambios relevantes)
+        // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded and parsed");
             initMap();
             setupRatingStars();
 
-            toggleListBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-                 setTimeout(() => map.invalidateSize(), 350);
-            });
-            closeSidebarBtn.addEventListener('click', () => {
-                 sidebar.classList.add('-translate-x-full');
-                 setTimeout(() => map.invalidateSize(), 350);
-            });
+            // Resto de listeners...
+            toggleListBtn.addEventListener('click', () => { sidebar.classList.toggle('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350); });
+            closeSidebarBtn.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350); });
             locateMeBtn.addEventListener('click', locateUser);
             categoryFilter.addEventListener('change', (e) => renderPlaces(e.target.value));
             placeForm.addEventListener('submit', savePlace);
@@ -726,16 +310,12 @@
             importBtn.addEventListener('click', triggerImport);
             importFileInput.addEventListener('change', importData);
 
-             document.addEventListener('click', (event) => {
+            document.addEventListener('click', (event) => {
                 if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full') && !sidebar.contains(event.target) && !toggleListBtn.contains(event.target)) {
-                     sidebar.classList.add('-translate-x-full');
-                     setTimeout(() => map.invalidateSize(), 350);
-                 }
+                    sidebar.classList.add('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350);
+                }
             });
-
-             window.addEventListener('resize', () => {
-                 map.invalidateSize();
-             });
+            window.addEventListener('resize', () => { if(map) map.invalidateSize(); });
         });
 
     </script>
