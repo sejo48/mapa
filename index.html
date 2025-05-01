@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitácora de Viajes - Costa Rica (Oscuro - Mapas Estándar/Satélite)</title>
+    <title>Bitácora de Viajes - Costa Rica (Oscuro - Marcadores Rojos)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         /* Estilo para asegurar que el mapa ocupe el espacio disponible */
-        #map { height: 100%; width: 100%; background-color: #ffffff; /* Cambiado a blanco ya que el mapa por defecto es claro */ }
+        #map { height: 100%; width: 100%; background-color: #ffffff; /* Fondo claro para mapas estándar/satélite */ }
         /* Asegurar que el contenedor principal ocupe toda la altura y aplicar fuente */
         html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
 
@@ -107,6 +107,13 @@
         }
         .leaflet-control-layers-scrollbar { /* Si la lista es larga */
             /* Estilos de scrollbar ya definidos globalmente */
+        }
+
+        /* Estilo para el icono de banderín rojo */
+        .red-flag-icon {
+            color: #ef4444; /* text-red-500 */
+            font-size: 1.5rem; /* Tamaño del icono */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Sombra para destacar */
         }
 
 
@@ -255,7 +262,7 @@
 
                      <div class="mb-4">
                         <label for="placeDate" class="block text-sm font-medium text-gray-300 mb-1">Fecha de Visita</label>
-                        <input type="date" id="placeDate" name="placeDate" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500" style="color-scheme: dark;"> {/* Ayuda a estilizar el selector de fecha */}
+                        <input type="date" id="placeDate" name="placeDate" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500" style="color-scheme: dark;">
                     </div>
 
                     <div class="mb-4">
@@ -323,31 +330,24 @@
             });
 
             // --- Definición de Capas Base ---
-
-            // 1. Mapa Satelital (ESRI)
             const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
                  minZoom: 7,
                  maxZoom: 18
             });
-
-            // 2. Mapa Estándar OpenStreetMap (con todas las etiquetas)
             const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 minZoom: 7,
-                maxZoom: 19 // OSM tiene buen nivel de zoom
+                maxZoom: 19
             });
 
-
             // --- Objeto de Capas Base para el Control ---
-            // *** CAMBIO: Eliminada la opción "Carreteras (Oscuro)" ***
             const baseMaps = {
                 "Estándar (Detallado)": osmStandard,
                 "Satélite": esriSatellite
             };
 
             // Añadir la capa por defecto al mapa
-            // *** CAMBIO: Añadir osmStandard por defecto ***
              osmStandard.addTo(map);
 
             // --- Crear y Añadir Control de Capas ---
@@ -365,20 +365,12 @@
             // Cargar lugares guardados
             loadPlaces();
 
-            // *** CAMBIO: Ajustar el color de fondo del contenedor del mapa según la capa inicial ***
+            // Ajustar el color de fondo del contenedor del mapa según la capa inicial
             map.getContainer().style.backgroundColor = '#ffffff'; // Blanco para OSM estándar
 
-            // *** CAMBIO: Escuchar cambios de capa para ajustar el fondo si es necesario ***
+            // Escuchar cambios de capa para ajustar el fondo si es necesario
             map.on('baselayerchange', function (e) {
-                // La capa satelital también se ve bien con fondo blanco o gris claro
-                // Podrías poner un fondo más oscuro si prefieres para satélite:
-                // if (e.name === "Satélite") {
-                //     map.getContainer().style.backgroundColor = '#222222';
-                // } else {
-                //     map.getContainer().style.backgroundColor = '#ffffff';
-                // }
-                // Por ahora, lo dejamos blanco para ambas
-                 map.getContainer().style.backgroundColor = '#ffffff';
+                 map.getContainer().style.backgroundColor = '#ffffff'; // Mantener blanco
             });
         }
 
@@ -414,7 +406,7 @@
                 document.getElementById('placeLng').value = lng;
                 document.getElementById('placeDate').valueAsDate = new Date();
             } else {
-                 // Añadiendo sin coordenadas (menos común ahora)
+                 // Añadiendo sin coordenadas
                  document.getElementById('modalTitle').textContent = 'Añadir Nuevo Lugar (Sin Ubicación)';
                  document.getElementById('placeDate').valueAsDate = new Date();
                  showMessage("Haz clic en el mapa para establecer la ubicación", 4000);
@@ -511,11 +503,20 @@
                  placesListElement.innerHTML = `<li class="text-gray-400 italic p-2">${message}</li>`;
             }
 
+            // *** NUEVO: Crear el icono de banderín rojo una vez ***
+            const redFlagIcon = L.divIcon({
+                html: '<i class="fas fa-flag red-flag-icon"></i>',
+                className: '', // No añadir clases extra al contenedor del icono
+                iconSize: [24, 24], // Tamaño aproximado del icono
+                iconAnchor: [0, 24], // Ancla en la parte inferior izquierda del icono (ajustar si es necesario)
+                popupAnchor: [12, -24] // Posición del popup relativa al icono
+            });
+
+
             filteredPlaces.forEach(place => {
-                // Marcador en mapa
+                // Marcador en mapa usando el icono de banderín rojo
                 const marker = L.marker([place.lat, place.lng], {
-                     // *** CAMBIO: Usar icono estándar de Leaflet para mejor visibilidad en mapas claros ***
-                     // icon: createCustomIcon(place.category) // Icono personalizado oscuro
+                     icon: redFlagIcon // Usar el icono personalizado
                 })
                     .bindPopup(`<b>${place.name}</b><br>${place.category}<br><button class="viewDetailsBtn" data-id="${place.id}">Ver Detalles</button>`)
                     .addTo(markers);
@@ -533,7 +534,6 @@
                 listItem.addEventListener('click', () => {
                     map.setView([place.lat, place.lng], 15);
                     markers.eachLayer(m => {
-                        // Comparar coordenadas con una pequeña tolerancia por si acaso
                         if (Math.abs(m.getLatLng().lat - place.lat) < 0.00001 && Math.abs(m.getLatLng().lng - place.lng) < 0.00001) {
                             m.openPopup();
                         }
@@ -557,8 +557,6 @@
             });
         }
 
-        // *** ELIMINADO: Ya no se usa el icono personalizado DivIcon ***
-        // function createCustomIcon(category) { ... }
 
         // Geolocalización (Función existente y verificada)
         function findMe() {
@@ -571,7 +569,12 @@
                     const lng = position.coords.longitude;
                     map.setView([lat, lng], 14);
                     // Usar marcador por defecto para "Estás aquí" también
-                    L.marker([lat, lng])
+                    // *** NUEVO: Usar icono de ubicación diferente al banderín ***
+                     const currentLocationIcon = L.divIcon({
+                        html: `<span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 border-4 border-white shadow-lg"></span>`,
+                        className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+                    });
+                    L.marker([lat, lng], { icon: currentLocationIcon }) // Usar icono específico
                       .addTo(map)
                       .bindPopup("<b>¡Estás aquí!</b><br>Puedes hacer clic en otro lugar para guardarlo.").openPopup();
                     showMessage("Ubicación encontrada");
@@ -620,9 +623,9 @@
          window.addEventListener('resize', () => {
              map.invalidateSize();
              if (window.innerWidth >= 768 && sidebar.classList.contains('hidden')) {
-                  // sidebar.classList.remove('hidden'); // Opcional: mostrar sidebar en grande si estaba oculto
+                  // sidebar.classList.remove('hidden'); // Opcional
              } else if (window.innerWidth < 768 && !sidebar.classList.contains('hidden')) {
-                 sidebar.classList.add('hidden'); // Ocultar sidebar en pequeño si estaba visible
+                 sidebar.classList.add('hidden');
              }
          });
 
