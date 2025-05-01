@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitácora de Viajes - Costa Rica (Oscuro - Marcadores Rojos)</title>
+    <title>Bitácora de Viajes - Costa Rica (Correcciones y Mejoras Móviles)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
@@ -13,12 +13,12 @@
         /* Estilo para asegurar que el mapa ocupe el espacio disponible */
         #map { height: 100%; width: 100%; background-color: #ffffff; /* Fondo claro para mapas estándar/satélite */ }
         /* Asegurar que el contenedor principal ocupe toda la altura y aplicar fuente */
-        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow: hidden; /* Prevenir scroll en body */ }
 
         /* --- Estilos Modo Oscuro (Interfaz) --- */
         body { background-color: #111827; /* bg-gray-900 */ } /* Fondo principal oscuro */
         header, aside, #placeModal > div { background-color: #1f2937; /* bg-gray-800 */ color: #d1d5db /* text-gray-300 */; }
-        header { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        header { box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; /* Asegurar que header esté sobre el contenido */ }
         aside { border-left: 1px solid #374151 /* border-gray-700 */; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }
         #placeModal > div { border: 1px solid #374151; }
         h1, h2, h3, label { color: #e5e7eb /* text-gray-200 */; }
@@ -47,10 +47,10 @@
 
         /* Estilos personalizados para botones en modo oscuro */
         .custom-btn {
-            @apply px-4 py-2 bg-teal-600 text-white rounded-lg shadow hover:bg-teal-700 transition duration-200 ease-in-out flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+            @apply px-3 py-2 sm:px-4 sm:py-2 bg-teal-600 text-white rounded-lg shadow hover:bg-teal-700 transition duration-200 ease-in-out flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
         }
         .delete-btn {
-             @apply px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed;
+             @apply px-3 py-2 sm:px-4 sm:py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed;
         }
 
         /* Estilos para popups de Leaflet en modo oscuro */
@@ -61,7 +61,9 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
         .leaflet-popup-content {
-            margin: 12px;
+            margin: 12px; /* Espacio interno del popup */
+            max-width: 250px; /* Limitar ancho del popup */
+            word-wrap: break-word; /* Evitar que texto largo desborde */
         }
          .leaflet-popup-content b { /* Nombre del lugar en popup */
             color: #e5e7eb; /* text-gray-200 */
@@ -72,13 +74,15 @@
         .leaflet-popup-close-button {
              color: #9ca3af; /* text-gray-400 */
              transition: color 0.2s ease-in-out;
+             padding: 4px 4px 0 0 !important; /* Ajustar padding botón cerrar */
+             font-size: 16px !important; /* Tamaño botón cerrar */
         }
         .leaflet-popup-close-button:hover {
             color: #e5e7eb; /* text-gray-200 */
         }
         /* Botón dentro del popup */
         .viewDetailsBtn {
-             @apply mt-2 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 transition duration-200;
+             @apply mt-2 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 transition duration-200 w-full text-center; /* Hacer botón ancho completo */
         }
 
         /* Estilos para el control de capas en modo oscuro */
@@ -88,25 +92,25 @@
             border-radius: 5px;
             box-shadow: 0 1px 5px rgba(0,0,0,0.4);
             color: #d1d5db; /* text-gray-300 */
+            max-height: 60vh; /* Limitar altura en pantallas pequeñas */
+            overflow-y: auto; /* Scroll si hay muchas capas */
         }
-        .leaflet-control-layers-selector { /* Estilo para los radio buttons/checkboxes */
+        .leaflet-control-layers-selector {
              margin-top: 2px;
              position: relative;
              top: 1px;
         }
         .leaflet-control-layers label {
-            margin-bottom: 0.3em; /* Espaciado entre opciones */
+            margin-bottom: 0.3em;
              font-weight: 500;
-             display: flex; /* Para alinear icono y texto si se añadieran iconos */
+             display: flex;
              align-items: center;
              gap: 5px;
+             padding: 4px 8px; /* Añadir padding interno */
         }
         .leaflet-control-layers-separator {
-             border-top: 1px solid #4b5563; /* bg-gray-600 */
+             border-top: 1px solid #4b5563;
              margin: 5px 0;
-        }
-        .leaflet-control-layers-scrollbar { /* Si la lista es larga */
-            /* Estilos de scrollbar ya definidos globalmente */
         }
 
         /* Estilo para el icono de banderín rojo */
@@ -114,16 +118,16 @@
             color: #ef4444; /* text-red-500 */
             font-size: 1.5rem; /* Tamaño del icono */
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Sombra para destacar */
+            line-height: 1; /* Ajustar altura de línea */
         }
-
 
         /* Ajustes generales */
         .modal-content {
-            max-height: 80vh;
+            max-height: 85vh; /* Permitir un poco más de altura al modal */
             overflow-y: auto;
         }
         .map-container {
-            height: calc(100vh - 4rem); /* Ajusta según altura del header */
+            height: calc(100vh - 4rem); /* Altura por defecto (escritorio sin sidebar) */
         }
         /* Scrollbar oscuro (Webkit) */
          ::-webkit-scrollbar {
@@ -142,24 +146,66 @@
             background: #6b7280; /* bg-gray-500 */
         }
 
-        @media (max-width: 768px) {
+        /* --- Estilos Responsivos Específicos --- */
+        @media (max-width: 767px) { /* Móviles (hasta md) */
+             .main-content {
+                flex-direction: column; /* Apilar mapa y sidebar (si se muestra) */
+                height: calc(100vh - 4rem); /* Ocupar espacio restante */
+                overflow: hidden; /* Evitar doble scroll */
+            }
             .map-container {
-                height: calc(100vh - 8rem); /* Ajustar si hay más controles */
+                height: 60%; /* Mapa ocupa la mayor parte */
+                min-height: 300px; /* Altura mínima mapa */
             }
-            .sidebar {
-                width: 100%;
-                max-height: 40vh;
-                overflow-y: auto;
+            #sidebar {
+                width: 100%; /* Sidebar ocupa todo el ancho */
+                max-height: 40%; /* Limitado al 40% inferior */
+                overflow-y: auto; /* Scroll si es necesario */
+                border-left: none; /* Quitar borde izquierdo */
+                border-top: 1px solid #374151; /* Añadir borde superior */
+                position: absolute; /* Posicionar absolutamente */
+                bottom: 0; /* Pegado abajo */
+                left: 0;
+                right: 0;
+                z-index: 5; /* Debajo del header pero sobre el mapa base */
+                transition: transform 0.3s ease-in-out; /* Animación suave */
+                transform: translateY(100%); /* Oculto por defecto abajo */
             }
-            .main-content {
-                flex-direction: column;
+            #sidebar.active {
+                 transform: translateY(0); /* Mostrar deslizando desde abajo */
             }
-            /* Hacer control de capas un poco más grande en móvil */
-            .leaflet-control-layers {
-                font-size: 14px;
+            /* Ajustar modal para móviles */
+            #placeModal > div {
+                width: 95%; /* Más ancho en móviles */
+                max-width: none; /* Quitar límite de ancho máximo */
             }
-            .leaflet-control-layers label {
-                padding: 2px 0; /* Más espacio vertical en móvil */
+            /* Ocultar texto en botones principales en pantallas muy pequeñas */
+             @media (max-width: 380px) {
+                 #findMeBtn span, #toggleListBtn span {
+                     display: none;
+                 }
+                 .custom-btn, .delete-btn {
+                     padding-left: 0.75rem; /* px-3 */
+                     padding-right: 0.75rem; /* px-3 */
+                 }
+             }
+        }
+
+        @media (min-width: 768px) { /* Escritorio (md y más) */
+            .map-container {
+                /* La altura se ajusta automáticamente por flexbox */
+            }
+             #sidebar {
+                /* Estilos por defecto de Tailwind md:block, md:w-1/3 etc. se aplican */
+                 position: relative; /* Volver a posición relativa */
+                 bottom: auto;
+                 transform: none; /* Quitar transformación */
+                 max-height: none; /* Quitar límite de altura */
+                 border-top: none; /* Quitar borde superior */
+                 border-left: 1px solid #374151; /* Restaurar borde izquierdo */
+            }
+            #sidebar.active { /* Asegurar que no tenga transformaciones en escritorio */
+                transform: none;
             }
         }
     </style>
@@ -183,15 +229,15 @@
         </div>
     </header>
 
-    <div class="flex-1 flex flex-col md:flex-row main-content overflow-hidden">
-        <div id="mapContainer" class="flex-1 map-container relative">
+    <div class="flex-1 flex flex-col md:flex-row main-content overflow-hidden relative">
+        <div id="mapContainer" class="flex-1 map-container relative md:h-full"> {/* Añadido md:h-full */}
             <div id="map"></div>
              <div id="messageBox" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded-lg shadow-lg hidden z-[1000]">
                 Mensaje aquí
             </div>
         </div>
 
-        <aside id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 p-4 shadow-lg overflow-y-auto sidebar hidden md:block border-l border-gray-700">
+        <aside id="sidebar" class="bg-gray-800 p-4 shadow-lg overflow-y-auto sidebar"> {/* Quitado hidden y anchos fijos de aquí */}
             <h2 class="text-lg font-semibold mb-3 text-gray-200">Lugares Guardados</h2>
             <div class="mb-4">
                 <label for="categoryFilter" class="block text-sm font-medium text-gray-400 mb-1">Filtrar por categoría:</label>
@@ -211,11 +257,11 @@
         </aside>
     </div>
 
-    <div id="placeModal" class="fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-[1001] hidden flex items-center justify-center p-4">
-        <div class="relative bg-gray-800 w-full max-w-lg mx-auto rounded-lg shadow-xl modal-content border border-gray-700">
-            <div class="p-6">
+    <div id="placeModal" class="fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-[1001] hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="relative bg-gray-800 w-full max-w-xs sm:max-w-lg mx-auto rounded-lg shadow-xl modal-content border border-gray-700"> {/* Ajuste de ancho */}
+            <div class="p-4 sm:p-6"> {/* Padding responsivo */}
                 <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-100" id="modalTitle">Añadir Nuevo Lugar</h3>
+                    <h3 class="text-lg sm:text-xl font-semibold text-gray-100" id="modalTitle">Añadir Nuevo Lugar</h3>
                     <button id="closeModalBtn" class="text-gray-400 hover:text-gray-200 transition duration-150">
                         <i class="fas fa-times fa-lg"></i>
                     </button>
@@ -270,7 +316,7 @@
                         <div class="text-sm text-gray-400">(Funcionalidad de carga de fotos no implementada en esta demo)</div>
                     </div>
 
-                    <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-700">
+                    <div class="flex justify-end space-x-2 sm:space-x-3 mt-6 pt-4 border-t border-gray-700"> {/* Ajuste espacio botones */}
                         <button type="button" id="deletePlaceBtn" class="delete-btn hidden">
                             <i class="fas fa-trash mr-1 sm:mr-2"></i><span class="hidden sm:inline">Eliminar</span>
                         </button>
@@ -290,12 +336,12 @@
     <script>
         // --- Variables Globales ---
         let map;
-        let places = []; // Array para guardar los lugares
-        let markers = L.layerGroup(); // Grupo para manejar los marcadores
-        const costaRicaBounds = L.latLngBounds(L.latLng(8.0, -85.9), L.latLng(11.2, -82.5)); // Límites aproximados de CR
-        const defaultCenter = [9.9333, -84.0833]; // Centro aproximado (San José)
+        let places = [];
+        let markers = L.layerGroup();
+        const costaRicaBounds = L.latLngBounds(L.latLng(8.0, -85.9), L.latLng(11.2, -82.5));
+        const defaultCenter = [9.9333, -84.0833];
         const defaultZoom = 8;
-        let layerControl; // Variable para el control de capas
+        let layerControl;
 
         // --- Elementos del DOM ---
         const placeModal = document.getElementById('placeModal');
@@ -308,10 +354,10 @@
         const sidebar = document.getElementById('sidebar');
         const deletePlaceBtn = document.getElementById('deletePlaceBtn');
         const messageBox = document.getElementById('messageBox');
+        const mapContainer = document.getElementById('mapContainer'); // Añadido para ajustar altura
 
         // --- Funciones ---
 
-        // Muestra un mensaje flotante temporal
         function showMessage(text, duration = 3000) {
             messageBox.textContent = text;
             messageBox.classList.remove('hidden');
@@ -320,14 +366,17 @@
             }, duration);
         }
 
-        // Inicializa el mapa Leaflet
         function initMap() {
             map = L.map('map', {
                 center: defaultCenter,
                 zoom: defaultZoom,
                 maxBounds: costaRicaBounds,
                 maxBoundsViscosity: 0.9,
+                zoomControl: false // Deshabilitar control de zoom por defecto para añadirlo manualmente
             });
+
+             // Añadir control de zoom en posición adecuada para móviles
+             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
             // --- Definición de Capas Base ---
             const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -341,54 +390,46 @@
                 maxZoom: 19
             });
 
-            // --- Objeto de Capas Base para el Control ---
             const baseMaps = {
-                "Estándar (Detallado)": osmStandard,
+                "Estándar": osmStandard, // Nombre más corto
                 "Satélite": esriSatellite
             };
 
-            // Añadir la capa por defecto al mapa
-             osmStandard.addTo(map);
+             osmStandard.addTo(map); // Añadir capa por defecto
 
             // --- Crear y Añadir Control de Capas ---
             layerControl = L.control.layers(baseMaps, null, {
-                position: 'topright',
-                collapsed: true
+                position: 'bottomleft', // Mover a esquina inferior izquierda
+                collapsed: true // Mantener colapsado
             }).addTo(map);
 
-            // Añade el grupo de marcadores al mapa
             markers.addTo(map);
-
-            // Evento al hacer clic en el mapa
             map.on('click', onMapClick);
-
-            // Cargar lugares guardados
             loadPlaces();
-
-            // Ajustar el color de fondo del contenedor del mapa según la capa inicial
-            map.getContainer().style.backgroundColor = '#ffffff'; // Blanco para OSM estándar
-
-            // Escuchar cambios de capa para ajustar el fondo si es necesario
+            map.getContainer().style.backgroundColor = '#ffffff';
             map.on('baselayerchange', function (e) {
-                 map.getContainer().style.backgroundColor = '#ffffff'; // Mantener blanco
+                 map.getContainer().style.backgroundColor = '#ffffff';
             });
+
+            // Ajustar layout inicial basado en tamaño de pantalla
+            handleResize();
         }
 
-        // Maneja el clic en el mapa
         function onMapClick(e) {
+            // Evitar añadir punto si se hace clic en un control del mapa
+            if (e.originalEvent.target.closest('.leaflet-control')) return;
+
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             openPlaceModal(null, lat, lng);
         }
 
-        // Abre el modal para añadir o editar un lugar
         function openPlaceModal(place = null, lat = null, lng = null) {
             placeForm.reset();
             document.getElementById('placeId').value = '';
             deletePlaceBtn.classList.add('hidden');
 
             if (place) {
-                // Editando
                 document.getElementById('modalTitle').textContent = 'Editar Lugar';
                 document.getElementById('placeId').value = place.id;
                 document.getElementById('placeLat').value = place.lat;
@@ -400,13 +441,11 @@
                 document.getElementById('placeDate').value = place.date;
                 deletePlaceBtn.classList.remove('hidden');
             } else if (lat !== null && lng !== null) {
-                // Añadiendo nuevo desde mapa
                 document.getElementById('modalTitle').textContent = 'Añadir Nuevo Lugar';
                 document.getElementById('placeLat').value = lat;
                 document.getElementById('placeLng').value = lng;
                 document.getElementById('placeDate').valueAsDate = new Date();
             } else {
-                 // Añadiendo sin coordenadas
                  document.getElementById('modalTitle').textContent = 'Añadir Nuevo Lugar (Sin Ubicación)';
                  document.getElementById('placeDate').valueAsDate = new Date();
                  showMessage("Haz clic en el mapa para establecer la ubicación", 4000);
@@ -416,16 +455,13 @@
             placeModal.classList.add('flex');
         }
 
-        // Cierra el modal
         function closeModal() {
             placeModal.classList.add('hidden');
             placeModal.classList.remove('flex');
         }
 
-        // Guarda o actualiza un lugar
         function savePlace(e) {
             e.preventDefault();
-
             const id = document.getElementById('placeId').value;
             const lat = parseFloat(document.getElementById('placeLat').value);
             const lng = parseFloat(document.getElementById('placeLng').value);
@@ -435,42 +471,29 @@
             const rating = document.getElementById('placeRating').value;
             const date = document.getElementById('placeDate').value;
 
-            if (!name) {
-                showMessage("Por favor, introduce un nombre para el lugar.", 3000);
-                return;
-            }
-             if (isNaN(lat) || isNaN(lng)) {
-                showMessage("Ubicación inválida. Por favor, haz clic en el mapa.", 3000);
-                return;
-            }
+            if (!name) { showMessage("Por favor, introduce un nombre.", 3000); return; }
+            if (isNaN(lat) || isNaN(lng)) { showMessage("Ubicación inválida.", 3000); return; }
 
-            const placeData = {
-                id: id || Date.now().toString(),
-                lat, lng, name, notes, category, rating, date,
-            };
-
+            const placeData = { id: id || Date.now().toString(), lat, lng, name, notes, category, rating, date };
             const existingIndex = places.findIndex(p => p.id === placeData.id);
 
             if (existingIndex > -1) {
                 places[existingIndex] = placeData;
-                showMessage("Lugar actualizado con éxito");
+                showMessage("Lugar actualizado");
             } else {
                 places.push(placeData);
-                 showMessage("Lugar guardado con éxito");
+                showMessage("Lugar guardado");
             }
-
             localStorage.setItem('myTravelLogPlaces', JSON.stringify(places));
             renderPlaces();
             closeModal();
         }
 
-         // Elimina un lugar
         function deletePlace() {
             const idToDelete = document.getElementById('placeId').value;
             if (!idToDelete) return;
             const placeName = document.getElementById('placeName').value || "este lugar";
-
-            if (confirm(`¿Estás seguro de que quieres eliminar "${placeName}"?`)) {
+            if (confirm(`¿Eliminar "${placeName}"?`)) {
                 places = places.filter(p => p.id !== idToDelete);
                 localStorage.setItem('myTravelLogPlaces', JSON.stringify(places));
                 renderPlaces();
@@ -479,49 +502,47 @@
             }
         }
 
-        // Carga los lugares desde Local Storage
         function loadPlaces() {
             const savedPlaces = localStorage.getItem('myTravelLogPlaces');
             places = savedPlaces ? JSON.parse(savedPlaces) : [];
             renderPlaces();
         }
 
-        // Renderiza los lugares en mapa y lista
         function renderPlaces() {
             markers.clearLayers();
             placesListElement.innerHTML = '';
-
             const selectedCategory = categoryFilter.value;
-            const filteredPlaces = places.filter(place =>
-                selectedCategory === 'all' || place.category === selectedCategory
-            );
+            const filteredPlaces = places.filter(place => selectedCategory === 'all' || place.category === selectedCategory);
 
             if (filteredPlaces.length === 0) {
-                 const message = selectedCategory === 'all'
-                    ? 'Aún no has guardado lugares. Haz clic en el mapa para añadir uno.'
-                    : `No hay lugares guardados en la categoría "${selectedCategory}".`;
+                 const message = selectedCategory === 'all' ? 'No has guardado lugares.' : `No hay lugares en "${selectedCategory}".`;
                  placesListElement.innerHTML = `<li class="text-gray-400 italic p-2">${message}</li>`;
             }
 
-            // *** NUEVO: Crear el icono de banderín rojo una vez ***
             const redFlagIcon = L.divIcon({
                 html: '<i class="fas fa-flag red-flag-icon"></i>',
-                className: '', // No añadir clases extra al contenedor del icono
-                iconSize: [24, 24], // Tamaño aproximado del icono
-                iconAnchor: [0, 24], // Ancla en la parte inferior izquierda del icono (ajustar si es necesario)
-                popupAnchor: [12, -24] // Posición del popup relativa al icono
+                className: '', iconSize: [24, 24], iconAnchor: [0, 24], popupAnchor: [12, -24]
             });
 
-
             filteredPlaces.forEach(place => {
-                // Marcador en mapa usando el icono de banderín rojo
-                const marker = L.marker([place.lat, place.lng], {
-                     icon: redFlagIcon // Usar el icono personalizado
-                })
+                const marker = L.marker([place.lat, place.lng], { icon: redFlagIcon })
                     .bindPopup(`<b>${place.name}</b><br>${place.category}<br><button class="viewDetailsBtn" data-id="${place.id}">Ver Detalles</button>`)
                     .addTo(markers);
 
-                 // Elemento en lista oscura (sin cambios)
+                 // *** CORRECCIÓN "Ver Detalles" ***
+                 // Añadir listener cuando el popup se abre
+                 marker.on('popupopen', (e) => {
+                     const popup = e.popup;
+                     const btn = popup.getElement().querySelector('.viewDetailsBtn');
+                     if (btn) {
+                         // Remover listener anterior por si acaso (evita duplicados)
+                         btn.removeEventListener('click', handleViewDetailsClick);
+                         // Añadir nuevo listener
+                         btn.addEventListener('click', handleViewDetailsClick);
+                     }
+                 });
+
+
                 const listItem = document.createElement('li');
                 listItem.className = 'p-3 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer flex justify-between items-center transition duration-150';
                 listItem.innerHTML = `
@@ -533,32 +554,27 @@
                 `;
                 listItem.addEventListener('click', () => {
                     map.setView([place.lat, place.lng], 15);
-                    markers.eachLayer(m => {
-                        if (Math.abs(m.getLatLng().lat - place.lat) < 0.00001 && Math.abs(m.getLatLng().lng - place.lng) < 0.00001) {
-                            m.openPopup();
-                        }
-                    });
-                     if (window.innerWidth < 768) {
-                        sidebar.classList.add('hidden');
+                    marker.openPopup(); // Abrir popup del marcador asociado
+                    // Ocultar sidebar en móvil al seleccionar item
+                    if (window.innerWidth < 768 && sidebar.classList.contains('active')) {
+                        toggleSidebar();
                     }
                 });
                 placesListElement.appendChild(listItem);
             });
+        }
 
-             // Añadir listeners a botones "Ver Detalles" (necesario después de crear popups)
-             document.querySelectorAll('.viewDetailsBtn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const placeId = e.target.getAttribute('data-id');
-                    const placeToEdit = places.find(p => p.id === placeId);
-                    if (placeToEdit) {
-                        openPlaceModal(placeToEdit);
-                    }
-                });
-            });
+        // *** NUEVO: Función manejadora separada para "Ver Detalles" ***
+        function handleViewDetailsClick(event) {
+            const button = event.target;
+            const placeId = button.getAttribute('data-id');
+            const placeToEdit = places.find(p => p.id === placeId);
+            if (placeToEdit) {
+                openPlaceModal(placeToEdit);
+            }
         }
 
 
-        // Geolocalización (Función existente y verificada)
         function findMe() {
             findMeBtn.disabled = true;
             findMeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span class="hidden sm:inline ml-2">Buscando...</span>';
@@ -568,66 +584,76 @@
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     map.setView([lat, lng], 14);
-                    // Usar marcador por defecto para "Estás aquí" también
-                    // *** NUEVO: Usar icono de ubicación diferente al banderín ***
                      const currentLocationIcon = L.divIcon({
                         html: `<span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 border-4 border-white shadow-lg"></span>`,
                         className: '', iconSize: [24, 24], iconAnchor: [12, 12]
                     });
-                    L.marker([lat, lng], { icon: currentLocationIcon }) // Usar icono específico
+                    L.marker([lat, lng], { icon: currentLocationIcon })
                       .addTo(map)
-                      .bindPopup("<b>¡Estás aquí!</b><br>Puedes hacer clic en otro lugar para guardarlo.").openPopup();
+                      .bindPopup("<b>¡Estás aquí!</b><br>Clic en el mapa para guardar un lugar.").openPopup();
                     showMessage("Ubicación encontrada");
                     findMeBtn.disabled = false;
                     findMeBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i><span class="hidden sm:inline ml-2">Encontrarme</span>';
                 }, error => {
-                    console.error("Error de geolocalización:", error);
-                     let errorMsg = "No se pudo obtener tu ubicación.";
-                     if (error.code === 1) errorMsg = "Permiso de ubicación denegado.";
+                    console.error("Error geolocalización:", error);
+                     let errorMsg = "Error obteniendo ubicación.";
+                     if (error.code === 1) errorMsg = "Permiso denegado.";
                      if (error.code === 2) errorMsg = "Ubicación no disponible.";
-                     if (error.code === 3) errorMsg = "Tiempo de espera agotado.";
+                     if (error.code === 3) errorMsg = "Tiempo agotado.";
                     showMessage(errorMsg, 4000);
                     findMeBtn.disabled = false;
                     findMeBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i><span class="hidden sm:inline ml-2">Encontrarme</span>';
                 }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
             } else {
-                showMessage("La geolocalización no está disponible en tu navegador.", 4000);
+                showMessage("Geolocalización no disponible.", 4000);
                 findMeBtn.disabled = false;
                 findMeBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i><span class="hidden sm:inline ml-2">Encontrarme</span>';
             }
         }
 
-         // Alterna visibilidad del sidebar
+         // *** MODIFICADO: Alterna visibilidad del sidebar (Móvil/Escritorio) ***
         function toggleSidebar() {
-            sidebar.classList.toggle('hidden');
-             map.invalidateSize(); // Ajusta tamaño del mapa
+            const isActive = sidebar.classList.toggle('active'); // 'active' controla la visibilidad en móvil
+
+            // En escritorio, 'active' no tiene efecto visual, pero necesitamos
+            // asegurarnos de que md:block siga funcionando.
+            // La visibilidad en escritorio se controla con md:block en el HTML/CSS.
+
+            // Forzar redibujo del mapa después de la animación (o cambio de layout)
+             setTimeout(() => {
+                map.invalidateSize();
+            }, 300); // Esperar que termine la transición CSS (0.3s)
         }
+
+        // *** NUEVO: Función para manejar ajustes en resize ***
+        function handleResize() {
+            if (window.innerWidth >= 768) {
+                // Escritorio: Asegurar que sidebar no tenga la clase 'active'
+                // y que se muestre si no estaba oculto por Tailwind (md:block)
+                 sidebar.classList.remove('active'); // Quitar clase de estado móvil
+                 // Si necesitas forzar que siempre sea visible en escritorio:
+                 // sidebar.classList.remove('hidden'); // Quitar hidden si se añadió dinámicamente
+                 // sidebar.classList.add('md:block'); // Asegurar que esté visible en md+
+            } else {
+                 // Móvil: Si el sidebar estaba visible (clase active), mantenerla.
+                 // Si no, asegurar que esté oculta (sin clase active).
+                 // El estado inicial (oculto) ya lo maneja el CSS.
+            }
+             // Siempre invalidar tamaño del mapa al redimensionar
+             map.invalidateSize();
+        }
+
 
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', initMap);
         closeModalBtn.addEventListener('click', closeModal);
         placeForm.addEventListener('submit', savePlace);
         categoryFilter.addEventListener('change', renderPlaces);
-        findMeBtn.addEventListener('click', findMe); // Listener para el botón "Encontrarme"
+        findMeBtn.addEventListener('click', findMe);
         toggleListBtn.addEventListener('click', toggleSidebar);
         deletePlaceBtn.addEventListener('click', deletePlace);
-
-         // Cierra modal al hacer clic fuera
-         placeModal.addEventListener('click', (e) => {
-            if (e.target === placeModal) {
-                closeModal();
-            }
-        });
-
-         // Ajusta mapa y sidebar en resize
-         window.addEventListener('resize', () => {
-             map.invalidateSize();
-             if (window.innerWidth >= 768 && sidebar.classList.contains('hidden')) {
-                  // sidebar.classList.remove('hidden'); // Opcional
-             } else if (window.innerWidth < 768 && !sidebar.classList.contains('hidden')) {
-                 sidebar.classList.add('hidden');
-             }
-         });
+        placeModal.addEventListener('click', (e) => { if (e.target === placeModal) closeModal(); });
+        window.addEventListener('resize', handleResize); // Llamar a handleResize en resize
 
     </script>
 </body>
