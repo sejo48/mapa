@@ -12,10 +12,10 @@
     <style>
         /* Estilos generales */
         #map {
-            height: calc(100vh - 4rem);
+            height: calc(100vh - 4rem); /* Altura del mapa ajustada a la cabecera */
             background-color: #e5e7eb; /* gray-200 */
         }
-        body { overflow: hidden; }
+        body { overflow: hidden; } /* Prevenir scroll general */
 
         /* Marcador ubicación actual */
         .current-location-marker {
@@ -30,6 +30,14 @@
             background-color: white;
             color: #1f2937; /* gray-800 */
             box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+            border-radius: 8px; /* Bordes redondeados para popups */
+        }
+        .leaflet-popup-content {
+            margin: 12px 18px; /* Ajuste de padding interno */
+        }
+        .leaflet-popup-close-button {
+            padding: 8px 8px 0 0 !important;
+            color: #6b7280; /* gray-500 */
         }
         /* Estrellas de calificación */
         .star-rating .fa-star { cursor: pointer; }
@@ -46,20 +54,35 @@
         .popup-actions button, .popup-actions a {
             margin-right: 8px;
         }
-        /* Scrollbar en modal */
+        /* Scrollbar en modal (área de contenido) */
         #place-modal .modal-content-area {
              scrollbar-width: thin;
-             scrollbar-color: #9ca3af #e5e7eb;
+             scrollbar-color: #9ca3af #e5e7eb; /* thumb track */
         }
+        /* Webkit scrollbar styling */
+        #place-modal .modal-content-area::-webkit-scrollbar {
+            width: 8px;
+        }
+        #place-modal .modal-content-area::-webkit-scrollbar-track {
+            background: #e5e7eb; /* gray-200 */
+            border-radius: 4px;
+        }
+        #place-modal .modal-content-area::-webkit-scrollbar-thumb {
+            background-color: #9ca3af; /* gray-400 */
+            border-radius: 4px;
+            border: 2px solid #e5e7eb; /* gray-200 */
+        }
+        /* Ocultar scroll del body cuando el modal está abierto */
         body.modal-open {
             overflow: hidden;
         }
-        @media (min-width: 640px) { /* sm breakpoint */
-             body.modal-open {
-                 overflow: auto;
-             }
+        /* Icono marcador personalizado */
+        .custom-marker-icon {
+            text-align: center;
         }
-
+        .custom-marker-icon i {
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Sombra para el icono */
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,45 +102,45 @@
         </button>
         <h1 class="text-xl font-semibold text-gray-800">Mis Lugares CR</h1>
         <div class="flex items-center gap-2">
-            <button id="locate-me-btn" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-150">
+            <button id="locate-me-btn" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-150" title="Ubicarme">
                 <i class="fas fa-crosshairs fa-lg"></i>
             </button>
-        </div>
+            </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden relative">
         <aside id="sidebar" class="absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white shadow-lg z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r">
              <div class="p-4 border-b flex justify-between items-center">
-                <h2 class="text-lg font-semibold">Lugares Guardados</h2>
-                <button id="close-sidebar-btn" class="md:hidden text-gray-500 hover:text-red-500 p-1">
-                    <i class="fas fa-times fa-lg"></i>
-                </button>
-            </div>
-            <div class="p-3 border-b">
-                <label for="category-filter" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Categoría:</label>
-                <select id="category-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-gray-900">
-                    <option value="all">Todas</option>
-                    <option value="Restaurante">Restaurante</option>
-                    <option value="Parque">Parque</option>
-                    <option value="Playa">Playa</option>
-                    <option value="Tienda">Tienda</option>
-                    <option value="Hotel">Hotel</option>
-                    <option value="Mirador">Mirador</option>
-                    <option value="Otro">Otro</option>
-                </select>
-            </div>
-            <ul id="places-list" class="flex-1 overflow-y-auto p-2 space-y-1">
-                <li class="text-center text-gray-500 py-4">No hay lugares guardados.</li>
-            </ul>
-            <div class="p-3 border-t flex gap-2">
-                <button id="export-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-150 flex items-center justify-center gap-1">
-                    <i class="fas fa-download"></i> Exportar
-                </button>
-                <button id="import-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-150 flex items-center justify-center gap-1">
-                    <i class="fas fa-upload"></i> Importar
-                </button>
-                <input type="file" id="import-file" accept=".json" class="hidden">
-            </div>
+                 <h2 class="text-lg font-semibold">Lugares Guardados</h2>
+                 <button id="close-sidebar-btn" class="md:hidden text-gray-500 hover:text-red-500 p-1">
+                     <i class="fas fa-times fa-lg"></i>
+                 </button>
+             </div>
+             <div class="p-3 border-b">
+                 <label for="category-filter" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Categoría:</label>
+                 <select id="category-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-gray-900">
+                     <option value="all">Todas</option>
+                     <option value="Restaurante">Restaurante</option>
+                     <option value="Parque">Parque</option>
+                     <option value="Playa">Playa</option>
+                     <option value="Tienda">Tienda</option>
+                     <option value="Hotel">Hotel</option>
+                     <option value="Mirador">Mirador</option>
+                     <option value="Otro">Otro</option>
+                 </select>
+             </div>
+             <ul id="places-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                 <li class="text-center text-gray-500 py-4">No hay lugares guardados.</li>
+             </ul>
+             <div class="p-3 border-t flex gap-2">
+                 <button id="export-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-150 flex items-center justify-center gap-1" title="Exportar lugares a JSON">
+                     <i class="fas fa-download"></i> Exportar
+                 </button>
+                 <button id="import-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-150 flex items-center justify-center gap-1" title="Importar lugares desde JSON">
+                     <i class="fas fa-upload"></i> Importar
+                 </button>
+                 <input type="file" id="import-file" accept=".json" class="hidden">
+             </div>
         </aside>
 
         <div id="map" class="flex-1 z-10">
@@ -125,18 +148,22 @@
         </div>
     </div>
 
-    {/* Modal - Contenedor principal sin padding en móvil */}
-    <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40 hidden sm:p-4">
-        {/* Contenedor interno a pantalla completa en móvil */}
-         <div class="bg-white w-full h-full sm:rounded-lg sm:shadow-xl sm:max-w-lg md:max-w-xl sm:max-h-[90vh] flex flex-col">
-             {/* Área de contenido con scroll interno */}
-             <div class="modal-content-area overflow-y-auto flex-1">
-                 <form id="place-form" class="p-6 space-y-4">
+    <div id="place-modal" class="fixed inset-0 bg-white sm:bg-black sm:bg-opacity-60 flex flex-col sm:items-center sm:justify-center z-40 hidden sm:p-4">
+        <div class="w-full h-full bg-white sm:rounded-lg sm:shadow-xl sm:max-w-lg md:max-w-xl sm:max-h-[90vh] flex flex-col overflow-hidden">
+             <div class="p-4 border-b flex justify-between items-center sm:hidden">
+                  <h3 id="modal-title-mobile" class="text-lg font-semibold">Añadir/Editar Lugar</h3>
+                  <button type="button" id="cancel-modal-btn-mobile" class="text-gray-500 hover:text-red-500 p-1">
+                      <i class="fas fa-times fa-lg"></i>
+                  </button>
+             </div>
+
+             <div class="modal-content-area overflow-y-auto flex-1 p-6">
+                 <form id="place-form" class="space-y-4">
                      <input type="hidden" id="place-id">
                      <input type="hidden" id="place-lat">
                      <input type="hidden" id="place-lng">
 
-                     <h3 id="modal-title" class="text-xl font-semibold text-gray-800 mb-4">Añadir Nuevo Lugar</h3>
+                     <h3 id="modal-title-desktop" class="text-xl font-semibold text-gray-800 mb-4 hidden sm:block">Añadir Nuevo Lugar</h3>
 
                      <div>
                          <label for="place-name" class="block text-sm font-medium text-gray-700">Nombre <span class="text-red-500">*</span></label>
@@ -160,8 +187,7 @@
 
                      <div>
                          <label class="block text-sm font-medium text-gray-700">Calificación</label>
-                         <div id="place-rating" class="mt-1 flex space-x-1 star-rating">
-                             <i class="far fa-star" data-value="1"></i> <i class="far fa-star" data-value="2"></i>
+                         <div id="place-rating" class="mt-1 flex space-x-1 star-rating text-xl"> <i class="far fa-star" data-value="1"></i> <i class="far fa-star" data-value="2"></i>
                              <i class="far fa-star" data-value="3"></i> <i class="far fa-star" data-value="4"></i>
                              <i class="far fa-star" data-value="5"></i>
                          </div>
@@ -170,38 +196,36 @@
 
                      <div>
                          <label for="place-visited" class="block text-sm font-medium text-gray-700">Fecha de Visita</label>
-                         <input type="date" id="place-visited" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900" style="color-scheme: light;">
-                     </div>
+                         <input type="date" id="place-visited" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900" style="color-scheme: light;"> </div>
                  </form>
-            </div>
-             {/* Área de botones separada (sin scroll) */}
-             <div class="p-6 pt-4 border-t border-gray-200 space-y-3">
+             </div>
+             <div class="p-6 pt-4 border-t border-gray-200 space-y-3 bg-white sm:rounded-b-lg">
                   <button type="submit" form="place-form" id="save-place-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-150 text-lg"> Guardar Lugar </button>
                   <a id="modal-directions-btn" href="#" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-directions"></i> Cómo llegar (Google Maps) </a>
                   <div class="flex gap-3">
                       <button type="button" id="share-place-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-share-alt"></i> Compartir </button>
                       <button type="button" id="delete-place-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 hidden"> <i class="fas fa-trash"></i> Eliminar </button>
                   </div>
-                  <button type="button" id="cancel-modal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-150"> Cancelar </button>
+                  <button type="button" id="cancel-modal-btn-desktop" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-150 hidden sm:block"> Cancelar </button>
              </div>
-        </div>
+         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
         // --- Variables Globales ---
-        let map;
-        let places = [];
-        let markers = {};
-        let currentEditingId = null;
-        let currentLocationMarker = null;
-        const COSTA_RICA_CENTER = [9.7489, -83.7534];
-        const DEFAULT_ZOOM = 8;
-        const LOCAL_STORAGE_KEY = 'costaRicaPlacesApp';
-        let osmTile, satelliteTile, topoTile, cartoLabels;
-        let layerControl;
+        let map; // Instancia del mapa Leaflet
+        let places = []; // Array para almacenar los lugares guardados
+        let markers = {}; // Objeto para almacenar los marcadores de Leaflet (id -> marker)
+        let currentEditingId = null; // ID del lugar que se está editando actualmente
+        let currentLocationMarker = null; // Marcador para la ubicación actual del usuario
+        const COSTA_RICA_CENTER = [9.7489, -83.7534]; // Coordenadas centrales de Costa Rica
+        const DEFAULT_ZOOM = 8; // Nivel de zoom inicial del mapa
+        const LOCAL_STORAGE_KEY = 'costaRicaPlacesApp'; // Clave para guardar/cargar datos en localStorage
+        let osmTile, satelliteTile, topoTile, cartoLabels; // Variables para las capas de teselas (tiles)
+        let layerControl; // Control de capas de Leaflet
 
-        // --- Elementos del DOM ---
+        // --- Elementos del DOM (obtenidos para fácil acceso) ---
         const bodyElement = document.body;
         const sidebar = document.getElementById('sidebar');
         const toggleListBtn = document.getElementById('toggle-list-btn');
@@ -211,7 +235,8 @@
         const categoryFilter = document.getElementById('category-filter');
         const placeModal = document.getElementById('place-modal');
         const placeForm = document.getElementById('place-form');
-        const modalTitle = document.getElementById('modal-title');
+        const modalTitleDesktop = document.getElementById('modal-title-desktop');
+        const modalTitleMobile = document.getElementById('modal-title-mobile');
         const placeIdInput = document.getElementById('place-id');
         const placeLatInput = document.getElementById('place-lat');
         const placeLngInput = document.getElementById('place-lng');
@@ -223,131 +248,842 @@
         const placeRatingValueInput = document.getElementById('place-rating-value');
         const placeVisitedInput = document.getElementById('place-visited');
         const savePlaceBtn = document.getElementById('save-place-btn');
-        const cancelModalBtn = document.getElementById('cancel-modal-btn');
+        const cancelModalBtnDesktop = document.getElementById('cancel-modal-btn-desktop');
+        const cancelModalBtnMobile = document.getElementById('cancel-modal-btn-mobile');
         const deletePlaceBtn = document.getElementById('delete-place-btn');
         const sharePlaceBtn = document.getElementById('share-place-btn');
         const modalDirectionsBtn = document.getElementById('modal-directions-btn');
         const exportBtn = document.getElementById('export-btn');
         const importBtn = document.getElementById('import-btn');
         const importFileInput = document.getElementById('import-file');
-        const mapErrorMessage = document.getElementById('map-error-message'); // **NUEVO: Referencia al mensaje de error**
+        const mapErrorMessage = document.getElementById('map-error-message');
 
-        // --- Funciones ---
+        // --- Funciones Principales ---
 
-        // Inicializar Mapa Leaflet
+        /**
+         * Inicializa el mapa Leaflet, configura las capas base, el control de capas,
+         * y los listeners de eventos del mapa. Carga los lugares guardados.
+         */
         function initMap() {
-            console.log("Attempting map initialization...");
-            // **NUEVO: Verificar si Leaflet (L) está disponible**
+            // Verifica si la librería Leaflet (L) está cargada
             if (typeof L === 'undefined') {
                 console.error("Leaflet library (L) not loaded!");
-                mapErrorMessage.classList.remove('hidden'); // Mostrar mensaje de error
-                return; // Detener la inicialización
+                mapErrorMessage.classList.remove('hidden'); // Muestra mensaje de error
+                return; // Detiene la ejecución si Leaflet no está
             }
-
             try {
+                // Crea la instancia del mapa centrada en Costa Rica
                 map = L.map('map').setView(COSTA_RICA_CENTER, DEFAULT_ZOOM);
-                console.log("Map object created.");
 
-                // Definir capas base
-                osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
-                satelliteTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
-                topoTile = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
-                console.log("Tile layers defined.");
+                // Define las capas base (mapas de fondo)
+                osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' });
+                satelliteTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community' });
+                topoTile = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap (CC-BY-SA)' });
 
-                // Añadir capa OSM por defecto INMEDIATAMENTE
-                console.log("Adding default OSM layer.");
+                // Añade la capa base por defecto (OSM) al mapa
                 osmTile.addTo(map);
 
+                // Define las capas superpuestas (como etiquetas)
+                cartoLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { attribution: '© CARTO', subdomains: 'abcd', maxZoom: 20, pane: 'overlayPane' }); // Pane para que esté encima
+
+                // Objeto con las capas base para el control
                 const baseMaps = {
-                    "Estándar": osmTile, "Satélite": satelliteTile,
+                    "Estándar": osmTile,
+                    "Satélite": satelliteTile,
                     "Topográfico": topoTile
                 };
+                // Objeto con las capas superpuestas
+                const overlayMaps = {
+                    "Etiquetas": cartoLabels
+                };
 
-                // Capa de etiquetas
-                cartoLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { attribution: '© CARTO', subdomains: 'abcd', maxZoom: 20, pane: 'overlayPane' });
-                const overlayMaps = { "Etiquetas": cartoLabels };
-
+                // Añade el control de capas al mapa
                 layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: true }).addTo(map);
-                console.log("Layer control added.");
 
-                // Forzar revisión de tamaño después de un breve instante
-                setTimeout(() => {
-                    if(map) {
-                        console.log("Forcing map invalidateSize().");
-                        map.invalidateSize();
-                    }
-                }, 150); // Ligero aumento del retraso
+                // Invalida el tamaño del mapa después de un breve retraso para asegurar el renderizado correcto
+                setTimeout(() => { if(map) { map.invalidateSize(); } }, 150);
 
-                // Evento baselayerchange simplificado
-                map.on('baselayerchange', function(e) {
-                    console.log(`Base layer changed to: ${e.name}`);
-                    if (layerControl) {
-                        layerControl.collapse();
-                    }
-                });
+                // Colapsa el control de capas cuando se cambia la capa base
+                map.on('baselayerchange', function(e) { if (layerControl) { layerControl.collapse(); } });
 
+                // Asigna la función onMapClick al evento 'click' del mapa
                 map.on('click', onMapClick);
+
+                // Carga los lugares guardados desde localStorage
                 loadPlaces();
-                console.log("Map initialization complete.");
-                mapErrorMessage.classList.add('hidden'); // Ocultar mensaje de error si todo fue bien
+
+                // Oculta el mensaje de error si todo fue bien
+                mapErrorMessage.classList.add('hidden');
 
             } catch (error) {
+                // Captura y muestra errores críticos durante la inicialización
                 console.error("CRITICAL ERROR during map initialization:", error);
-                mapErrorMessage.classList.remove('hidden'); // Mostrar mensaje de error
+                mapErrorMessage.classList.remove('hidden'); // Muestra mensaje de error
             }
         }
 
-        // --- Funciones JS restantes (sin cambios relevantes) ---
-        function openModal() { placeModal.classList.remove('hidden'); bodyElement.classList.add('modal-open'); }
-        function closeModalAndReset() { placeModal.classList.add('hidden'); bodyElement.classList.remove('modal-open'); currentEditingId = null; addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; modalDirectionsBtn.classList.add('hidden'); modalDirectionsBtn.href = "#"; placeForm.reset(); resetRatingStars(); }
-        function onMapClick(e) { const { lat, lng } = e.latlng; openModalForNewPlace(lat, lng); }
-        async function fetchAddressDetails(lat, lng) { const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es&addressdetails=1`; try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); return await response.json(); } catch (error) { console.error("Error fetching address:", error); return null; } }
-        function getCurrentDateString() { const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
-        async function openModalForNewPlace(lat, lng) { currentEditingId = null; placeForm.reset(); resetRatingStars(); placeIdInput.value = ''; placeLatInput.value = lat; placeLngInput.value = lng; modalTitle.textContent = 'Añadir Nuevo Lugar'; savePlaceBtn.textContent = 'Guardar Lugar'; deletePlaceBtn.classList.add('hidden'); sharePlaceBtn.classList.add('hidden'); modalDirectionsBtn.classList.add('hidden'); placeVisitedInput.value = getCurrentDateString(); placeNotesInput.value = ''; placeNameInput.value = ''; placeNotesInput.classList.add('hidden'); addressLoadingMessage.classList.remove('hidden'); openModal(); const addressData = await fetchAddressDetails(lat, lng); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); let potentialName = ''; let fullAddress = ''; if (addressData) { fullAddress = addressData.display_name || ''; const addressDetails = addressData.address || {}; potentialName = addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.natural || addressDetails.building || addressDetails.man_made || addressDetails.leisure || addressDetails.road || ''; placeNotesInput.value = `Dirección aprox.: ${fullAddress}\n--------------------\n`; } else { placeNotesInput.placeholder = "No se pudo obtener la dirección automáticamente."; } if (potentialName) { placeNameInput.value = potentialName; } }
-        function openModalForEditing(placeId) { const place = places.find(p => p.id === placeId); if (!place) return; currentEditingId = placeId; placeForm.reset(); resetRatingStars(); addressLoadingMessage.classList.add('hidden'); placeNotesInput.classList.remove('hidden'); placeNotesInput.placeholder = ""; placeIdInput.value = place.id; placeLatInput.value = place.lat; placeLngInput.value = place.lng; placeNameInput.value = place.name; placeNotesInput.value = place.notes || ''; placeCategoryInput.value = place.category || 'Otro'; placeVisitedInput.value = place.visitedDate || ''; setRatingStars(place.rating || 0); modalTitle.textContent = 'Editar Lugar'; savePlaceBtn.textContent = 'Guardar Cambios'; deletePlaceBtn.classList.remove('hidden'); const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`; modalDirectionsBtn.href = directionsUrl; modalDirectionsBtn.classList.remove('hidden'); if ('share' in navigator) { sharePlaceBtn.classList.remove('hidden'); } else { sharePlaceBtn.classList.add('hidden'); } openModal(); }
-        function savePlace(event) { event.preventDefault(); const id = placeIdInput.value || `place_${Date.now()}`; const lat = parseFloat(placeLatInput.value); const lng = parseFloat(placeLngInput.value); const name = placeNameInput.value.trim(); const notes = placeNotesInput.value.trim(); const category = placeCategoryInput.value; const rating = parseInt(placeRatingValueInput.value, 10); const visitedDate = placeVisitedInput.value; if (!name) { alert('El nombre del lugar es obligatorio.'); return; } if (isNaN(lat) || isNaN(lng)) { alert('Error: Coordenadas inválidas.'); return; } const placeData = { id, lat, lng, name, notes, category, rating, visitedDate }; if (currentEditingId) { const index = places.findIndex(p => p.id === currentEditingId); if (index > -1) places[index] = placeData; } else { places.push(placeData); } savePlacesToLocalStorage(); renderPlaces(); closeModalAndReset(); }
-        function deletePlace() { if (!currentEditingId) return; if (confirm(`¿Eliminar "${placeNameInput.value}"?`)) { places = places.filter(p => p.id !== currentEditingId); savePlacesToLocalStorage(); renderPlaces(); closeModalAndReset(); } }
-        function sharePlace() { if (!currentEditingId || !('share' in navigator)) return; const place = places.find(p => p.id === currentEditingId); if (!place) return; const shareUrl = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`; const shareData = { title: `Visité: ${place.name}`, text: `Mira este lugar: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes : ''}`, url: shareUrl }; navigator.share(shareData).catch(error => console.error('Error sharing:', error)); }
-        function savePlacesToLocalStorage() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(places)); }
-        function loadPlaces() { const storedPlaces = localStorage.getItem(LOCAL_STORAGE_KEY); if (storedPlaces) { try { places = JSON.parse(storedPlaces); if (!Array.isArray(places)) places = []; } catch (e) { places = []; } } else { places = []; } renderPlaces(); }
-        function renderPlaces(filterCategory = 'all') { Object.values(markers).forEach(marker => map.removeLayer(marker)); markers = {}; placesListElement.innerHTML = ''; const filteredPlaces = filterCategory === 'all' ? places : places.filter(p => p.category === filterCategory); if (filteredPlaces.length === 0) { placesListElement.innerHTML = `<li class="text-center text-gray-500 py-4 px-2">${filterCategory === 'all' ? 'No hay lugares.' : 'No hay lugares en esta categoría.'}</li>`; } else { filteredPlaces.forEach(place => { if (typeof place.lat !== 'number' || typeof place.lng !== 'number') return; const marker = L.marker([place.lat, place.lng], { icon: createCustomIcon() }).addTo(map); const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`; let popupContent = ` <div class="font-sans text-sm max-w-xs"> <strong class="text-base block mb-1">${place.name}</strong> <span class="text-gray-600 block mb-1">Categoría: ${place.category}</span>`; if (place.rating > 0) popupContent += `<span class="text-yellow-500 block mb-1">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</span>`; if (place.visitedDate) popupContent += `<span class="text-xs text-gray-500 block mb-1">Visitado: ${place.visitedDate}</span>`; if (place.notes) { const previewNotes = place.notes.length > 100 ? place.notes.substring(0, 100) + '...' : place.notes; popupContent += `<p class="text-xs text-gray-500 my-1">${previewNotes.replace(/\n/g, '<br>')}</p>`; } popupContent += ` <div class="mt-2 pt-2 border-t border-gray-200 popup-actions"> <button class="text-blue-600 hover:underline font-medium text-sm" onclick="openModalForEditing('${place.id}')"><i class="fas fa-edit fa-fw"></i> Detalles</button> <a href="${directionsUrl}" target="_blank" class="text-indigo-600 hover:underline font-medium text-sm inline-block"><i class="fas fa-directions fa-fw"></i> Cómo llegar</a> </div></div>`; marker.bindPopup(popupContent, { maxWidth: 250 }); markers[place.id] = marker; const listItem = document.createElement('li'); listItem.className = 'p-3 border-b hover:bg-gray-100 cursor-pointer flex justify-between items-start gap-2'; listItem.innerHTML = ` <div class="flex-1 min-w-0"> <div class="font-semibold text-gray-800 truncate">${place.name}</div> <div class="text-xs text-gray-500">${place.category} ${place.visitedDate ? '- Visitado: ' + place.visitedDate : ''}</div> ${place.rating > 0 ? `<div class="text-xs text-yellow-500">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</div>` : ''} </div> <button class="flex-shrink-0 text-xs text-blue-500 hover:text-blue-700 pt-1 whitespace-nowrap" onclick="event.stopPropagation(); openModalForEditing('${place.id}')">Editar</button>`; listItem.addEventListener('click', (e) => { map.setView([place.lat, place.lng], 15); setTimeout(() => { markers[place.id].openPopup(); }, 100); if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full'); }); placesListElement.appendChild(listItem); }); } }
-        function createCustomIcon() { return L.divIcon({ html: '<i class="fas fa-map-marker-alt fa-2x text-red-600 drop-shadow-md"></i>', className: 'custom-marker-icon', iconSize: [30, 42], iconAnchor: [15, 42], popupAnchor: [0, -45] }); }
-        function locateUser() { if (!navigator.geolocation) return alert('Geolocalización no soportada.'); locateMeBtn.classList.add('animate-pulse'); navigator.geolocation.getCurrentPosition(position => { const { latitude, longitude } = position.coords; map.setView([latitude, longitude], 14); if (currentLocationMarker) map.removeLayer(currentLocationMarker); currentLocationMarker = L.marker([latitude, longitude], { icon: L.divIcon({ className: 'current-location-marker', iconSize: [16, 16] }) }).addTo(map); locateMeBtn.classList.remove('animate-pulse'); }, error => { console.error("Error locating:", error); alert('No se pudo obtener ubicación.'); locateMeBtn.classList.remove('animate-pulse'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }); }
-        function setupRatingStars() { const stars = placeRatingElement.querySelectorAll('.fa-star'); stars.forEach(star => { star.addEventListener('click', handleStarClick); star.addEventListener('mouseover', handleStarMouseover); star.addEventListener('mouseout', handleStarMouseout); }); } function handleStarClick(event) { const value = event.target.getAttribute('data-value'); placeRatingValueInput.value = value; setRatingStars(value); } function handleStarMouseover(event) { const value = event.target.getAttribute('data-value'); highlightStars(value); } function handleStarMouseout() { setRatingStars(placeRatingValueInput.value); } function highlightStars(value) { const stars = placeRatingElement.querySelectorAll('.fa-star'); stars.forEach(star => { const starValue = star.getAttribute('data-value'); if (parseInt(starValue) <= parseInt(value)) { star.classList.remove('far'); star.classList.add('fas', 'selected'); } else { star.classList.remove('fas', 'selected'); star.classList.add('far'); } }); } function setRatingStars(value) { placeRatingValueInput.value = value; highlightStars(value); } function resetRatingStars() { placeRatingValueInput.value = 0; const stars = placeRatingElement.querySelectorAll('.fa-star'); stars.forEach(star => { star.classList.remove('fas', 'selected'); star.classList.add('far'); }); }
-        function exportData() { if (places.length === 0) return alert("No hay lugares para exportar."); const dataStr = JSON.stringify(places, null, 2); const dataBlob = new Blob([dataStr], { type: 'application/json' }); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); link.href = url; link.download = `mis_lugares_cr_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); } function triggerImport() { importFileInput.click(); } function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm("Importar reemplazará los lugares actuales. ¿Continuar?")) { importFileInput.value = ''; return; } const reader = new FileReader(); reader.onload = function(e) { try { const importedPlaces = JSON.parse(e.target.result); if (Array.isArray(importedPlaces) && (importedPlaces.length === 0 || (importedPlaces[0].lat && importedPlaces[0].lng && importedPlaces[0].name && importedPlaces[0].id))) { places = importedPlaces; savePlacesToLocalStorage(); renderPlaces(categoryFilter.value); alert(`Importados ${places.length} lugares.`); if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) sidebar.classList.add('-translate-x-full'); } else { alert("Error: Formato de archivo inválido."); } } catch (error) { console.error("Error parsing JSON:", error); alert("Error al leer el archivo JSON."); } finally { importFileInput.value = ''; } }; reader.onerror = function() { alert("Error al leer archivo."); importFileInput.value = ''; }; reader.readAsText(file); }
+        /**
+         * Abre el modal para añadir/editar lugares.
+         * Añade una clase al body para prevenir el scroll de fondo.
+         */
+        function openModal() {
+            placeModal.classList.remove('hidden'); // Muestra el modal
+            bodyElement.classList.add('modal-open'); // Bloquea scroll del body
+        }
 
-        // --- Event Listeners ---
-        // **MODIFICADO: Usar window.onload para iniciar**
-        window.onload = () => {
-            console.log("Window finished loading. Initializing app...");
-            initMap(); // Iniciar mapa aquí
-            if (map) { // Solo configurar estrellas si el mapa se inicializó
-                 setupRatingStars();
+        /**
+         * Cierra el modal, resetea el formulario y las variables de edición.
+         * Quita la clase del body para restaurar el scroll.
+         */
+        function closeModalAndReset() {
+            placeModal.classList.add('hidden'); // Oculta el modal
+            bodyElement.classList.remove('modal-open'); // Restaura scroll del body
+            currentEditingId = null; // Resetea el ID de edición
+            addressLoadingMessage.classList.add('hidden'); // Oculta mensaje de carga de dirección
+            placeNotesInput.classList.remove('hidden'); // Asegura que el campo de notas esté visible
+            placeNotesInput.placeholder = ""; // Limpia el placeholder de notas
+            modalDirectionsBtn.classList.add('hidden'); // Oculta botón de direcciones
+            modalDirectionsBtn.href = "#"; // Resetea el link de direcciones
+            placeForm.reset(); // Resetea los campos del formulario
+            resetRatingStars(); // Resetea las estrellas de calificación
+        }
+
+        /**
+         * Manejador del evento 'click' en el mapa.
+         * Obtiene las coordenadas (lat, lng) y abre el modal para un nuevo lugar.
+         * @param {LeafletEvent} e - El objeto del evento de clic de Leaflet.
+         */
+        function onMapClick(e) {
+            const { lat, lng } = e.latlng; // Extrae latitud y longitud del evento
+            openModalForNewPlace(lat, lng); // Llama a la función para abrir el modal
+        }
+
+        /**
+         * Realiza una solicitud a la API de Nominatim (OpenStreetMap) para obtener
+         * la dirección correspondiente a unas coordenadas (geocodificación inversa).
+         * @param {number} lat - Latitud.
+         * @param {number} lng - Longitud.
+         * @returns {Promise<object|null>} - Una promesa que resuelve con los datos de la dirección o null si hay error.
+         */
+        async function fetchAddressDetails(lat, lng) {
+            // URL de la API de Nominatim para geocodificación inversa en español
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es&addressdetails=1`;
+            try {
+                const response = await fetch(url); // Realiza la petición
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); // Lanza error si la respuesta no es OK
+                return await response.json(); // Devuelve los datos JSON de la dirección
+            } catch (error) {
+                console.error("Error fetching address:", error); // Muestra el error en consola
+                return null; // Devuelve null en caso de error
+            }
+        }
+
+        /**
+         * Obtiene la fecha actual en formato YYYY-MM-DD.
+         * @returns {string} - La fecha actual formateada.
+         */
+        function getCurrentDateString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Mes (0-11) + 1, con padding
+            const day = String(today.getDate()).padStart(2, '0'); // Día con padding
+            return `${year}-${month}-${day}`; // Retorna la fecha formateada
+        }
+
+        /**
+         * Configura y abre el modal para añadir un nuevo lugar en las coordenadas dadas.
+         * Intenta obtener la dirección automáticamente usando fetchAddressDetails.
+         * @param {number} lat - Latitud del nuevo lugar.
+         * @param {number} lng - Longitud del nuevo lugar.
+         */
+        async function openModalForNewPlace(lat, lng) {
+            currentEditingId = null; // Asegura que no estamos editando
+            placeForm.reset(); // Limpia el formulario
+            resetRatingStars(); // Resetea las estrellas
+            placeIdInput.value = ''; // Limpia el ID oculto
+            placeLatInput.value = lat; // Establece latitud oculta
+            placeLngInput.value = lng; // Establece longitud oculta
+            modalTitleDesktop.textContent = 'Añadir Nuevo Lugar'; // Título para desktop
+            modalTitleMobile.textContent = 'Añadir Nuevo Lugar'; // Título para móvil
+            savePlaceBtn.textContent = 'Guardar Lugar'; // Texto del botón guardar
+            deletePlaceBtn.classList.add('hidden'); // Oculta botón eliminar
+            sharePlaceBtn.classList.add('hidden'); // Oculta botón compartir
+            modalDirectionsBtn.classList.add('hidden'); // Oculta botón direcciones
+            placeVisitedInput.value = getCurrentDateString(); // Establece fecha actual por defecto
+            placeNotesInput.value = ''; // Limpia notas
+            placeNameInput.value = ''; // Limpia nombre
+            placeNotesInput.classList.add('hidden'); // Oculta notas temporalmente
+            addressLoadingMessage.classList.remove('hidden'); // Muestra "Buscando dirección..."
+            openModal(); // Abre el modal
+
+            // Intenta obtener la dirección
+            const addressData = await fetchAddressDetails(lat, lng);
+            addressLoadingMessage.classList.add('hidden'); // Oculta "Buscando dirección..."
+            placeNotesInput.classList.remove('hidden'); // Muestra el campo de notas
+
+            let potentialName = ''; // Variable para nombre sugerido
+            let fullAddress = ''; // Variable para dirección completa
+
+            if (addressData) {
+                // Si se obtuvo respuesta de Nominatim
+                fullAddress = addressData.display_name || ''; // Dirección completa
+                const addressDetails = addressData.address || {}; // Detalles de la dirección
+                // Intenta encontrar un nombre relevante (amenity, shop, etc.)
+                potentialName = addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.natural || addressDetails.building || addressDetails.man_made || addressDetails.leisure || addressDetails.road || '';
+                // Pre-rellena las notas con la dirección aproximada
+                placeNotesInput.value = `Dirección aprox.: ${fullAddress}\n--------------------\n`;
+            } else {
+                // Si hubo error al obtener la dirección
+                placeNotesInput.placeholder = "No se pudo obtener la dirección automáticamente.";
             }
 
-            // Configurar listeners generales aquí también
-            toggleListBtn.addEventListener('click', () => { sidebar.classList.toggle('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350); });
-            closeSidebarBtn.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350); });
-            locateMeBtn.addEventListener('click', locateUser);
-            categoryFilter.addEventListener('change', (e) => renderPlaces(e.target.value));
-            placeForm.addEventListener('submit', savePlace);
-            cancelModalBtn.addEventListener('click', closeModalAndReset);
-            deletePlaceBtn.addEventListener('click', deletePlace);
-            sharePlaceBtn.addEventListener('click', sharePlace);
-            exportBtn.addEventListener('click', exportData);
-            importBtn.addEventListener('click', triggerImport);
-            importFileInput.addEventListener('change', importData);
+            // Si se encontró un nombre potencial, lo pre-rellena
+            if (potentialName) {
+                placeNameInput.value = potentialName;
+            }
+        }
 
-            document.addEventListener('click', (event) => {
-                if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full') && !sidebar.contains(event.target) && !toggleListBtn.contains(event.target)) {
-                    sidebar.classList.add('-translate-x-full'); setTimeout(() => { if(map) map.invalidateSize() }, 350);
+        /**
+         * Configura y abre el modal para editar un lugar existente.
+         * Rellena el formulario con los datos del lugar seleccionado.
+         * @param {string} placeId - El ID del lugar a editar.
+         */
+        function openModalForEditing(placeId) {
+            // Busca el lugar en el array 'places' por su ID
+            const place = places.find(p => p.id === placeId);
+            if (!place) return; // Si no se encuentra el lugar, no hace nada
+
+            currentEditingId = placeId; // Establece el ID del lugar que se está editando
+            placeForm.reset(); // Limpia el formulario
+            resetRatingStars(); // Resetea las estrellas
+            addressLoadingMessage.classList.add('hidden'); // Oculta mensaje de carga
+            placeNotesInput.classList.remove('hidden'); // Muestra campo de notas
+            placeNotesInput.placeholder = ""; // Limpia placeholder
+
+            // Rellena los campos del formulario con los datos del lugar
+            placeIdInput.value = place.id;
+            placeLatInput.value = place.lat;
+            placeLngInput.value = place.lng;
+            placeNameInput.value = place.name;
+            placeNotesInput.value = place.notes || ''; // Usa '' si no hay notas
+            placeCategoryInput.value = place.category || 'Otro'; // Usa 'Otro' si no hay categoría
+            placeVisitedInput.value = place.visitedDate || ''; // Usa '' si no hay fecha
+            setRatingStars(place.rating || 0); // Establece las estrellas (0 si no hay rating)
+
+            // Ajusta títulos y botones del modal para el modo edición
+            modalTitleDesktop.textContent = 'Editar Lugar';
+            modalTitleMobile.textContent = 'Editar Lugar';
+            savePlaceBtn.textContent = 'Guardar Cambios';
+            deletePlaceBtn.classList.remove('hidden'); // Muestra botón eliminar
+
+            // Genera y asigna el enlace de Google Maps para "Cómo llegar"
+            const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
+            modalDirectionsBtn.href = directionsUrl;
+            modalDirectionsBtn.classList.remove('hidden'); // Muestra botón "Cómo llegar"
+
+            // Muestra el botón compartir solo si la API Web Share está disponible
+            if ('share' in navigator) {
+                sharePlaceBtn.classList.remove('hidden');
+            } else {
+                sharePlaceBtn.classList.add('hidden');
+            }
+
+            openModal(); // Abre el modal
+        }
+
+        /**
+         * Manejador del evento 'submit' del formulario del modal.
+         * Recoge los datos del formulario, valida, y guarda o actualiza el lugar.
+         * @param {Event} event - El objeto del evento submit.
+         */
+        function savePlace(event) {
+            event.preventDefault(); // Previene el envío normal del formulario
+
+            // Recoge los datos del formulario
+            const id = placeIdInput.value || `place_${Date.now()}`; // Usa ID existente o genera uno nuevo
+            const lat = parseFloat(placeLatInput.value); // Convierte lat a número
+            const lng = parseFloat(placeLngInput.value); // Convierte lng a número
+            const name = placeNameInput.value.trim(); // Nombre (sin espacios extra)
+            const notes = placeNotesInput.value.trim(); // Notas (sin espacios extra)
+            const category = placeCategoryInput.value; // Categoría seleccionada
+            const rating = parseInt(placeRatingValueInput.value, 10); // Calificación (entero)
+            const visitedDate = placeVisitedInput.value; // Fecha de visita
+
+            // Validación simple
+            if (!name) {
+                alert('El nombre del lugar es obligatorio.');
+                placeNameInput.focus(); // Pone el foco en el campo nombre
+                return; // Detiene la función
+            }
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Error: Coordenadas inválidas.');
+                return; // Detiene la función
+            }
+
+            // Crea el objeto del lugar con los datos
+            const placeData = { id, lat, lng, name, notes, category, rating, visitedDate };
+
+            // Si currentEditingId tiene un valor, estamos editando
+            if (currentEditingId) {
+                const index = places.findIndex(p => p.id === currentEditingId); // Encuentra el índice del lugar
+                if (index > -1) {
+                    places[index] = placeData; // Reemplaza el lugar existente con los nuevos datos
+                }
+            } else {
+                // Si no, estamos añadiendo un nuevo lugar
+                places.push(placeData); // Añade el nuevo lugar al array
+            }
+
+            savePlacesToLocalStorage(); // Guarda el array actualizado en localStorage
+            renderPlaces(categoryFilter.value); // Vuelve a renderizar la lista y marcadores (con filtro actual)
+            closeModalAndReset(); // Cierra y resetea el modal
+        }
+
+        /**
+         * Manejador del clic en el botón 'Eliminar' del modal.
+         * Pide confirmación y elimina el lugar actual del array y localStorage.
+         */
+        function deletePlace() {
+            if (!currentEditingId) return; // No hace nada si no se está editando
+
+            // Pide confirmación al usuario
+            if (confirm(`¿Estás seguro de que quieres eliminar "${placeNameInput.value}"? Esta acción no se puede deshacer.`)) {
+                // Filtra el array 'places', manteniendo solo los que NO tienen el ID actual
+                places = places.filter(p => p.id !== currentEditingId);
+                savePlacesToLocalStorage(); // Guarda el array modificado
+                renderPlaces(categoryFilter.value); // Actualiza la vista
+                closeModalAndReset(); // Cierra el modal
+            }
+        }
+
+        /**
+         * Manejador del clic en el botón 'Compartir' del modal.
+         * Usa la API Web Share (si está disponible) para compartir los detalles del lugar.
+         */
+        function sharePlace() {
+            // Verifica si se está editando un lugar y si la API Share está disponible
+            if (!currentEditingId || !('share' in navigator)) return;
+
+            const place = places.find(p => p.id === currentEditingId); // Encuentra el lugar
+            if (!place) return; // Si no lo encuentra, sale
+
+            // Construye la URL de Google Maps para compartir la ubicación
+            const shareUrl = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`;
+            // Prepara los datos para compartir
+            const shareData = {
+                title: `Lugar recomendado: ${place.name}`, // Título sugerido
+                text: `¡Mira este lugar que guardé!: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes.substring(0, 150) + (place.notes.length > 150 ? '...' : '') : ''}\n\nUbicación:`, // Texto (con notas si existen)
+                url: shareUrl // URL a compartir
+            };
+
+            // Intenta compartir usando la API
+            navigator.share(shareData)
+                .then(() => console.log('Lugar compartido con éxito.')) // Log si tiene éxito
+                .catch(error => console.error('Error al compartir:', error)); // Log si hay error
+        }
+
+        /**
+         * Guarda el array 'places' completo en el localStorage del navegador,
+         * convirtiéndolo a una cadena JSON.
+         */
+        function savePlacesToLocalStorage() {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(places));
+            } catch (error) {
+                console.error("Error saving to localStorage:", error);
+                // Considerar mostrar un mensaje al usuario si el almacenamiento falla (ej. cuota excedida)
+                alert("Error al guardar los datos. Es posible que el almacenamiento local esté lleno.");
+            }
+        }
+
+        /**
+         * Carga los lugares guardados desde localStorage al iniciar la aplicación.
+         * Si no hay datos guardados o hay un error al parsear, inicializa 'places' como un array vacío.
+         */
+        function loadPlaces() {
+            const storedPlaces = localStorage.getItem(LOCAL_STORAGE_KEY); // Obtiene los datos de localStorage
+            if (storedPlaces) {
+                try {
+                    places = JSON.parse(storedPlaces); // Intenta parsear el JSON
+                    // Validación básica para asegurar que es un array
+                    if (!Array.isArray(places)) {
+                        console.warn("Data in localStorage was not an array. Resetting.");
+                        places = [];
+                    }
+                    // Podría añadirse validación más profunda de cada objeto 'place' aquí si fuera necesario
+                } catch (e) {
+                    console.error("Error parsing places from localStorage:", e);
+                    places = []; // Si hay error al parsear, resetea a array vacío
+                    // Opcional: Informar al usuario que los datos guardados estaban corruptos.
+                    // alert("Hubo un problema al cargar tus lugares guardados. Empezando de nuevo.");
+                }
+            } else {
+                places = []; // Si no hay nada en localStorage, empieza con array vacío
+            }
+            renderPlaces(); // Renderiza los lugares cargados (o la lista vacía)
+        }
+
+        /**
+         * Renderiza (dibuja) los marcadores en el mapa y los elementos en la lista lateral.
+         * Filtra los lugares según la categoría seleccionada (si aplica).
+         * @param {string} [filterCategory='all'] - La categoría por la cual filtrar ('all' para mostrar todos).
+         */
+        function renderPlaces(filterCategory = 'all') {
+            // Elimina todos los marcadores existentes del mapa
+            Object.values(markers).forEach(marker => {
+                if (map.hasLayer(marker)) {
+                    map.removeLayer(marker);
                 }
             });
-            window.addEventListener('resize', () => { if(map) map.invalidateSize(); });
-        };
+            markers = {}; // Resetea el objeto de marcadores
 
-        // Listener DOMContentLoaded eliminado
+            placesListElement.innerHTML = ''; // Limpia la lista del sidebar
+
+            // Filtra el array 'places' si se especificó una categoría diferente a 'all'
+            const filteredPlaces = filterCategory === 'all'
+                ? places
+                : places.filter(p => p.category === filterCategory);
+
+            // Si no hay lugares (o no hay en la categoría filtrada), muestra un mensaje
+            if (filteredPlaces.length === 0) {
+                placesListElement.innerHTML = `<li class="text-center text-gray-500 py-4 px-2">${filterCategory === 'all' ? 'Aún no has guardado ningún lugar. ¡Haz clic en el mapa para empezar!' : 'No hay lugares guardados en esta categoría.'}</li>`;
+            } else {
+                // Si hay lugares, itera sobre ellos para crear marcadores y elementos de lista
+                filteredPlaces.forEach(place => {
+                    // Validación básica de coordenadas
+                    if (typeof place.lat !== 'number' || typeof place.lng !== 'number' || isNaN(place.lat) || isNaN(place.lng)) {
+                        console.warn(`Lugar "${place.name}" (ID: ${place.id}) tiene coordenadas inválidas y será omitido.`);
+                        return; // Omite este lugar si las coordenadas no son válidas
+                    }
+
+                    // Crea un marcador Leaflet con un icono personalizado
+                    const marker = L.marker([place.lat, place.lng], { icon: createCustomIcon() }).addTo(map);
+
+                    // Genera la URL de Google Maps para las direcciones
+                    const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
+
+                    // Construye el contenido HTML para el popup del marcador
+                    let popupContent = `
+                        <div class="font-sans text-sm max-w-xs">
+                            <strong class="text-base block mb-1">${place.name}</strong>
+                            <span class="text-gray-600 block mb-1">Categoría: ${place.category}</span>`;
+                    // Añade estrellas de calificación si existe
+                    if (place.rating > 0) {
+                        popupContent += `<span class="text-yellow-500 block mb-1 text-lg">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</span>`;
+                    }
+                    // Añade fecha de visita si existe
+                    if (place.visitedDate) {
+                        popupContent += `<span class="text-xs text-gray-500 block mb-1">Visitado: ${place.visitedDate}</span>`;
+                    }
+                    // Añade una vista previa de las notas si existen (con límite de caracteres)
+                    if (place.notes) {
+                        const previewNotes = place.notes.length > 100 ? place.notes.substring(0, 100) + '...' : place.notes;
+                        // Reemplaza saltos de línea con <br> para visualización HTML
+                        popupContent += `<p class="text-xs text-gray-500 my-1">${previewNotes.replace(/\n/g, '<br>')}</p>`;
+                    }
+                    // Añade botones de acción (Editar/Detalles y Cómo llegar)
+                    popupContent += `
+                            <div class="mt-2 pt-2 border-t border-gray-200 popup-actions">
+                                <button class="text-blue-600 hover:underline font-medium text-sm" onclick="openModalForEditing('${place.id}')"><i class="fas fa-edit fa-fw"></i> Editar/Detalles</button>
+                                <a href="${directionsUrl}" target="_blank" class="text-indigo-600 hover:underline font-medium text-sm inline-block ml-2"><i class="fas fa-directions fa-fw"></i> Cómo llegar</a>
+                            </div>
+                        </div>`;
+
+                    // Asigna el contenido al popup del marcador
+                    marker.bindPopup(popupContent, { maxWidth: 250 });
+
+                    // Guarda la referencia al marcador en el objeto 'markers'
+                    markers[place.id] = marker;
+
+                    // Crea el elemento de lista (<li>) para el sidebar
+                    const listItem = document.createElement('li');
+                    listItem.className = 'p-3 border-b hover:bg-gray-100 cursor-pointer flex justify-between items-start gap-2';
+                    // Contenido HTML del elemento de lista
+                    listItem.innerHTML = `
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-gray-800 truncate" title="${place.name}">${place.name}</div>
+                            <div class="text-xs text-gray-500">${place.category} ${place.visitedDate ? '- Visitado: ' + place.visitedDate : ''}</div>
+                            ${place.rating > 0 ? `<div class="text-xs text-yellow-500">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</div>` : ''}
+                        </div>
+                        <button class="flex-shrink-0 text-xs text-blue-500 hover:text-blue-700 pt-1 whitespace-nowrap" onclick="event.stopPropagation(); openModalForEditing('${place.id}')">Editar</button>
+                    `;
+                    // Añade un listener para que al hacer clic en el item:
+                    // 1. Centre el mapa en el lugar.
+                    // 2. Abra el popup del marcador correspondiente.
+                    // 3. Cierre el sidebar si está en vista móvil.
+                    listItem.addEventListener('click', (e) => {
+                        map.setView([place.lat, place.lng], 15); // Centra el mapa con zoom 15
+                        // Pequeño retraso para asegurar que setView termine antes de abrir el popup
+                        setTimeout(() => {
+                            if (markers[place.id]) { // Verifica que el marcador exista
+                                markers[place.id].openPopup();
+                            }
+                        }, 100);
+                        // Si la pantalla es pequeña (móvil), cierra el sidebar
+                        if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                             sidebar.classList.add('-translate-x-full');
+                             // Invalida tamaño del mapa después de cerrar sidebar para evitar problemas de renderizado
+                             setTimeout(() => { if(map) map.invalidateSize() }, 350);
+                        }
+                    });
+                    // Añade el elemento de lista al contenedor <ul>
+                    placesListElement.appendChild(listItem);
+                });
+            }
+        }
+
+        /**
+         * Crea y devuelve un icono personalizado para los marcadores de Leaflet.
+         * Usa FontAwesome para el icono de marcador.
+         * @returns {L.DivIcon} - Un objeto DivIcon de Leaflet.
+         */
+        function createCustomIcon() {
+            return L.divIcon({
+                // HTML para el icono (un icono de FontAwesome)
+                html: '<i class="fas fa-map-marker-alt fa-2x text-red-600 drop-shadow-md"></i>',
+                // Clase CSS para aplicar estilos adicionales si es necesario
+                className: 'custom-marker-icon',
+                // Tamaño del icono [ancho, alto]
+                iconSize: [30, 42],
+                // Punto del icono que corresponde a la coordenada del marcador [horizontal, vertical]
+                // (Centro inferior del icono)
+                iconAnchor: [15, 42],
+                // Punto desde donde se abrirá el popup relativo al iconAnchor [horizontal, vertical]
+                popupAnchor: [0, -45] // Un poco arriba del icono
+            });
+        }
+
+        /**
+         * Intenta obtener la ubicación actual del usuario usando la API de Geolocalización del navegador.
+         * Centra el mapa en la ubicación encontrada y añade un marcador especial.
+         */
+        function locateUser() {
+            // Verifica si la geolocalización está disponible
+            if (!navigator.geolocation) {
+                return alert('La geolocalización no está soportada por tu navegador.');
+            }
+
+            locateMeBtn.disabled = true; // Deshabilita el botón mientras busca
+            locateMeBtn.classList.add('animate-pulse'); // Añade animación de pulso
+
+            // Pide la posición actual
+            navigator.geolocation.getCurrentPosition(
+                // --- Función Success ---
+                position => {
+                    const { latitude, longitude } = position.coords; // Obtiene coords
+                    map.setView([latitude, longitude], 14); // Centra el mapa
+
+                    // Si ya existe un marcador de ubicación actual, lo elimina
+                    if (currentLocationMarker && map.hasLayer(currentLocationMarker)) {
+                        map.removeLayer(currentLocationMarker);
+                    }
+                    // Crea un nuevo marcador para la ubicación actual con estilo CSS
+                    currentLocationMarker = L.marker([latitude, longitude], {
+                        icon: L.divIcon({
+                            className: 'current-location-marker', // Clase CSS definida en <style>
+                            iconSize: [16, 16]
+                        })
+                    }).addTo(map);
+
+                    locateMeBtn.classList.remove('animate-pulse'); // Quita animación
+                    locateMeBtn.disabled = false; // Rehabilita el botón
+                },
+                // --- Función Error ---
+                error => {
+                    console.error("Error obteniendo la ubicación:", error);
+                    let message = 'No se pudo obtener tu ubicación.';
+                    // Mensajes más específicos según el código de error
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = "Permiso de ubicación denegado.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = "Información de ubicación no disponible.";
+                            break;
+                        case error.TIMEOUT:
+                            message = "Se agotó el tiempo de espera para obtener la ubicación.";
+                            break;
+                    }
+                    alert(message); // Muestra mensaje de error al usuario
+                    locateMeBtn.classList.remove('animate-pulse'); // Quita animación
+                    locateMeBtn.disabled = false; // Rehabilita el botón
+                },
+                // --- Opciones ---
+                {
+                    enableHighAccuracy: true, // Intenta obtener la ubicación más precisa
+                    timeout: 10000, // Tiempo máximo de espera (10 segundos)
+                    maximumAge: 0 // No usar una ubicación en caché
+                }
+            );
+        }
+
+        // --- Funciones para la Calificación con Estrellas ---
+
+        /**
+         * Configura los listeners de eventos (click, mouseover, mouseout) para las estrellas de calificación.
+         */
+        function setupRatingStars() {
+            const stars = placeRatingElement.querySelectorAll('.fa-star'); // Selecciona todas las estrellas
+            stars.forEach(star => {
+                star.addEventListener('click', handleStarClick); // Al hacer clic
+                star.addEventListener('mouseover', handleStarMouseover); // Al pasar el ratón por encima
+                star.addEventListener('mouseout', handleStarMouseout); // Al quitar el ratón de encima
+            });
+        }
+
+        /**
+         * Manejador del evento 'click' en una estrella.
+         * Establece el valor de calificación definitivo en el input oculto y actualiza visualmente las estrellas.
+         * @param {Event} event - El objeto del evento click.
+         */
+        function handleStarClick(event) {
+            const value = event.target.getAttribute('data-value'); // Obtiene el valor de la estrella clickeada
+            placeRatingValueInput.value = value; // Guarda el valor en el input oculto
+            setRatingStars(value); // Actualiza visualmente las estrellas permanentemente
+        }
+
+        /**
+         * Manejador del evento 'mouseover' en una estrella.
+         * Resalta temporalmente las estrellas hasta la que tiene el ratón encima.
+         * @param {Event} event - El objeto del evento mouseover.
+         */
+        function handleStarMouseover(event) {
+            const value = event.target.getAttribute('data-value'); // Obtiene el valor de la estrella
+            highlightStars(value); // Resalta estrellas hasta ese valor
+        }
+
+        /**
+         * Manejador del evento 'mouseout' de una estrella.
+         * Restaura la visualización de las estrellas al valor guardado en el input oculto.
+         */
+        function handleStarMouseout() {
+            // Vuelve a mostrar las estrellas según el valor actual guardado
+            setRatingStars(placeRatingValueInput.value);
+        }
+
+        /**
+         * Actualiza visualmente las estrellas (llenas/vacías) hasta el valor especificado.
+         * Cambia las clases CSS 'far' (vacía) por 'fas' (llena) y añade/quita 'selected'.
+         * @param {number|string} value - El número de estrellas a resaltar (1-5).
+         */
+        function highlightStars(value) {
+            const stars = placeRatingElement.querySelectorAll('.fa-star');
+            const ratingValue = parseInt(value, 10); // Convierte a número
+
+            stars.forEach(star => {
+                const starValue = parseInt(star.getAttribute('data-value'), 10); // Valor de esta estrella
+                // Si el valor de esta estrella es menor o igual al valor a resaltar
+                if (starValue <= ratingValue) {
+                    star.classList.remove('far'); // Quita clase vacía
+                    star.classList.add('fas', 'selected'); // Añade clases llena y seleccionada
+                } else {
+                    // Si es mayor, la deja vacía
+                    star.classList.remove('fas', 'selected'); // Quita clases llena y seleccionada
+                    star.classList.add('far'); // Añade clase vacía
+                }
+            });
+        }
+
+        /**
+         * Establece el valor de calificación en el input oculto y actualiza visualmente las estrellas.
+         * Es la función principal para fijar una calificación.
+         * @param {number|string} value - El valor de calificación (0-5).
+         */
+        function setRatingStars(value) {
+            const ratingValue = parseInt(value, 10) || 0; // Asegura que sea número, 0 si no es válido
+            placeRatingValueInput.value = ratingValue; // Guarda el valor
+            highlightStars(ratingValue); // Actualiza la visualización
+        }
+
+        /**
+         * Resetea la calificación a 0, tanto en el input oculto como visualmente.
+         */
+        function resetRatingStars() {
+            placeRatingValueInput.value = 0; // Pone el valor a 0
+            const stars = placeRatingElement.querySelectorAll('.fa-star');
+            stars.forEach(star => {
+                star.classList.remove('fas', 'selected'); // Quita clases llena/seleccionada
+                star.classList.add('far'); // Asegura que esté la clase vacía
+            });
+        }
+
+        // --- Funciones de Exportar/Importar ---
+
+        /**
+         * Exporta los datos del array 'places' a un archivo JSON descargable.
+         */
+        function exportData() {
+            if (places.length === 0) {
+                return alert("No hay lugares guardados para exportar."); // No hace nada si no hay lugares
+            }
+            // Convierte el array 'places' a una cadena JSON formateada (indentada)
+            const dataStr = JSON.stringify(places, null, 2);
+            // Crea un Blob (objeto binario) con los datos JSON
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            // Crea una URL temporal para el Blob
+            const url = URL.createObjectURL(dataBlob);
+            // Crea un elemento <a> invisible para iniciar la descarga
+            const link = document.createElement('a');
+            link.href = url;
+            // Nombre del archivo (incluye fecha actual)
+            link.download = `mis_lugares_cr_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link); // Añade el link al DOM
+            link.click(); // Simula un clic para iniciar la descarga
+            document.body.removeChild(link); // Elimina el link del DOM
+            URL.revokeObjectURL(url); // Libera la URL temporal
+        }
+
+        /**
+         * Simula un clic en el input de tipo 'file' oculto para abrir el diálogo de selección de archivo.
+         */
+        function triggerImport() {
+            importFileInput.click(); // Hace clic programáticamente en el input file
+        }
+
+        /**
+         * Manejador del evento 'change' del input de archivo.
+         * Lee el archivo JSON seleccionado, lo valida (muy básicamente) y reemplaza
+         * los lugares actuales con los importados.
+         * @param {Event} event - El objeto del evento change.
+         */
+        function importData(event) {
+            const file = event.target.files[0]; // Obtiene el archivo seleccionado
+            if (!file) return; // Si no se seleccionó archivo, sale
+
+            // Confirma con el usuario si desea reemplazar los datos actuales
+            if (!confirm("Importar un archivo reemplazará todos tus lugares guardados actualmente. ¿Deseas continuar?")) {
+                importFileInput.value = ''; // Limpia el input file para permitir seleccionar el mismo archivo de nuevo
+                return; // Cancela la importación
+            }
+
+            const reader = new FileReader(); // Crea un lector de archivos
+
+            // Se ejecuta cuando el archivo se ha leído correctamente
+            reader.onload = function(e) {
+                try {
+                    // Intenta parsear el contenido del archivo como JSON
+                    const importedPlaces = JSON.parse(e.target.result);
+
+                    // Validación muy básica: ¿Es un array? ¿Tiene elementos o está vacío?
+                    // Si tiene elementos, ¿el primero parece tener la estructura esperada?
+                    if (Array.isArray(importedPlaces) &&
+                        (importedPlaces.length === 0 ||
+                         (importedPlaces[0] && typeof importedPlaces[0].lat === 'number' && typeof importedPlaces[0].lng === 'number' && importedPlaces[0].name && importedPlaces[0].id)))
+                    {
+                        places = importedPlaces; // Reemplaza el array actual con los datos importados
+                        savePlacesToLocalStorage(); // Guarda los nuevos datos en localStorage
+                        renderPlaces(categoryFilter.value); // Actualiza la vista (mapa y lista)
+                        alert(`Importación completada. Se cargaron ${places.length} lugares.`); // Mensaje de éxito
+
+                        // Cierra el sidebar en móvil si estaba abierto después de importar
+                        if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                            sidebar.classList.add('-translate-x-full');
+                            setTimeout(() => { if(map) map.invalidateSize() }, 350);
+                        }
+                    } else {
+                        // Si la validación falla, muestra un error
+                        alert("Error: El archivo seleccionado no parece tener el formato JSON esperado para los lugares.");
+                    }
+                } catch (error) {
+                    // Si ocurre un error al parsear el JSON
+                    console.error("Error parsing JSON:", error);
+                    alert("Error al leer el archivo JSON. Asegúrate de que el archivo es válido.");
+                } finally {
+                    // Limpia el input file en cualquier caso para permitir futuras importaciones
+                    importFileInput.value = '';
+                }
+            };
+
+            // Se ejecuta si hay un error al leer el archivo
+            reader.onerror = function() {
+                alert("Error al leer el archivo.");
+                importFileInput.value = ''; // Limpia el input file
+            };
+
+            // Inicia la lectura del archivo como texto
+            reader.readAsText(file);
+        }
+
+        // --- Event Listeners (Asignación de manejadores a eventos) ---
+
+        // Espera a que toda la página (DOM, CSS, JS, imágenes) esté completamente cargada
+        window.onload = () => {
+            initMap(); // Inicializa el mapa como primer paso
+
+            // Solo configura el resto si el mapa se inicializó correctamente
+            if (map) {
+                setupRatingStars(); // Configura las estrellas de calificación en el modal
+
+                // --- Listeners para botones y controles ---
+                toggleListBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('-translate-x-full'); // Muestra/oculta sidebar
+                    // Invalida tamaño del mapa después de la animación para ajustar el renderizado
+                    setTimeout(() => { if(map) map.invalidateSize() }, 350);
+                });
+                closeSidebarBtn.addEventListener('click', () => {
+                    sidebar.classList.add('-translate-x-full'); // Cierra sidebar
+                    setTimeout(() => { if(map) map.invalidateSize() }, 350);
+                });
+                locateMeBtn.addEventListener('click', locateUser); // Botón "Ubicarme"
+                categoryFilter.addEventListener('change', (e) => renderPlaces(e.target.value)); // Filtro de categoría
+                placeForm.addEventListener('submit', savePlace); // Envío del formulario del modal
+                cancelModalBtnDesktop.addEventListener('click', closeModalAndReset); // Botón cancelar (desktop)
+                cancelModalBtnMobile.addEventListener('click', closeModalAndReset); // Botón cancelar (móvil)
+                deletePlaceBtn.addEventListener('click', deletePlace); // Botón eliminar
+                sharePlaceBtn.addEventListener('click', sharePlace); // Botón compartir
+                exportBtn.addEventListener('click', exportData); // Botón exportar
+                importBtn.addEventListener('click', triggerImport); // Botón importar
+                importFileInput.addEventListener('change', importData); // Input de archivo para importar
+
+                // --- Listeners globales ---
+
+                // Listener para cerrar sidebar/modal al hacer clic fuera de ellos
+                document.addEventListener('click', (event) => {
+                    // Cierra sidebar en móvil si se hace clic fuera de él y fuera del botón que lo abre
+                    if (window.innerWidth < 768 && // Solo en pantallas pequeñas
+                        !sidebar.classList.contains('-translate-x-full') && // Si el sidebar está visible
+                        !sidebar.contains(event.target) && // Si el clic NO fue dentro del sidebar
+                        !toggleListBtn.contains(event.target)) // Si el clic NO fue en el botón de abrir/cerrar
+                    {
+                        sidebar.classList.add('-translate-x-full'); // Cierra el sidebar
+                        setTimeout(() => { if(map) map.invalidateSize() }, 350);
+                    }
+
+                    // Cierra modal en pantallas grandes si se hace clic en el fondo oscuro (el propio elemento modal)
+                    if (window.innerWidth >= 640 && // Solo en pantallas >= sm
+                        !placeModal.classList.contains('hidden') && // Si el modal está visible
+                        event.target === placeModal) // Si el clic fue exactamente en el contenedor del modal (fondo)
+                    {
+                        closeModalAndReset(); // Cierra el modal
+                    }
+                });
+
+                // Listener para redimensionar el mapa si cambia el tamaño de la ventana
+                // Utiliza un debounce simple para no llamar invalidateSize() constantemente durante el redimensionamiento
+                let resizeTimer;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer); // Limpia el temporizador anterior
+                    resizeTimer = setTimeout(() => {
+                        if(map) {
+                             map.invalidateSize(); // Ajusta el tamaño del mapa
+                             // Podría ser necesario recentrar o ajustar el zoom si el layout cambia drásticamente
+                        }
+                    }, 150); // Espera 150ms después del último evento resize
+                });
+            }
+        };
 
     </script>
 </body>
 </html>
+```
+
+He eliminado las siguientes líneas de comentarios que aparecían en tu imagen:
+
+* ``
+* `` (Actualicé el comentario interno también)
+* `` (Actualicé el comentario interno también)
+* `` (Actualicé el comentario interno también)
+* `` (Actualicé el comentario interno también)
+
+Ahora esos textos no deberían aparecer en el modal. Prueba a cargar esta versi
