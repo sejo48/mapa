@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitácora de Viajes - Costa Rica (Oscuro)</title>
+    <title>Bitácora de Viajes - Costa Rica (Oscuro - Carreteras/Satélite)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         /* Estilo para asegurar que el mapa ocupe el espacio disponible */
-        #map { height: 100%; width: 100%; }
+        #map { height: 100%; width: 100%; background-color: #222; /* Fondo oscuro para el contenedor del mapa */ }
         /* Asegurar que el contenedor principal ocupe toda la altura y aplicar fuente */
         html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
 
@@ -54,6 +54,32 @@
              @apply mt-2 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 transition duration-200;
         }
 
+        /* Estilos para el control de capas en modo oscuro */
+        .leaflet-control-layers {
+            background-color: rgba(31, 41, 55, 0.9); /* bg-gray-800 con transparencia */
+            border: 1px solid #4b5563; /* bg-gray-600 */
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            color: #d1d5db; /* text-gray-300 */
+        }
+        .leaflet-control-layers-selector { /* Estilo para los radio buttons/checkboxes */
+             margin-top: 2px;
+             position: relative;
+             top: 1px;
+        }
+        .leaflet-control-layers label {
+            margin-bottom: 0.3em; /* Espaciado entre opciones */
+             font-weight: 500;
+        }
+        .leaflet-control-layers-separator {
+             border-top: 1px solid #4b5563; /* bg-gray-600 */
+             margin: 5px 0;
+        }
+        .leaflet-control-layers-scrollbar { /* Si la lista es larga */
+            /* Estilos de scrollbar ya definidos globalmente */
+        }
+
+
         /* Ajustes generales para modo oscuro */
         .modal-content {
             max-height: 80vh;
@@ -90,6 +116,10 @@
             }
             .main-content {
                 flex-direction: column;
+            }
+            /* Hacer control de capas un poco más grande en móvil */
+            .leaflet-control-layers {
+                font-size: 14px;
             }
         }
     </style>
@@ -225,6 +255,7 @@
         const costaRicaBounds = L.latLngBounds(L.latLng(8.0, -85.9), L.latLng(11.2, -82.5)); // Límites aproximados de CR
         const defaultCenter = [9.9333, -84.0833]; // Centro aproximado (San José)
         const defaultZoom = 8;
+        let layerControl; // Variable para el control de capas
 
         // --- Elementos del DOM ---
         const placeModal = document.getElementById('placeModal');
@@ -255,14 +286,48 @@
                 center: defaultCenter,
                 zoom: defaultZoom,
                 maxBounds: costaRicaBounds,
-                maxBoundsViscosity: 0.9
+                maxBoundsViscosity: 0.9,
+                // layers: [cartoVoyagerBase] // Añadir capa por defecto aquí si se desea
             });
 
-            // Añade capa de mapa base (OpenStreetMap)
-            // NOTA: El mapa base sigue siendo claro. Se pueden usar capas oscuras alternativas si se desea.
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            // --- Definición de Capas Base ---
+            const cartoVoyagerBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
                 minZoom: 7,
+                maxZoom: 20
+            });
+
+            const cartoVoyagerLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+                attribution: '',
+                subdomains: 'abcd',
+                minZoom: 7,
+                maxZoom: 20,
+                pane: 'overlayPane' // Asegura que las etiquetas estén encima
+            });
+
+            // Combinar Voyager Base + Labels en un LayerGroup para el control
+            const voyagerMap = L.layerGroup([cartoVoyagerBase, cartoVoyagerLabels]);
+
+            const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                 minZoom: 7,
+                 maxZoom: 18 // ESRI Satélite puede tener un zoom máximo diferente
+            });
+
+            // --- Objeto de Capas Base para el Control ---
+            const baseMaps = {
+                "Carreteras": voyagerMap, // Usar el LayerGroup como opción
+                "Satélite": esriSatellite
+            };
+
+            // Añadir la capa por defecto al mapa
+             voyagerMap.addTo(map); // Mostrar Voyager por defecto
+
+            // --- Crear y Añadir Control de Capas ---
+            layerControl = L.control.layers(baseMaps, null, { // El segundo argumento (null) es para capas de superposición (overlays), que no usamos ahora
+                position: 'topright', // Posición del control
+                collapsed: true // Mostrar colapsado por defecto (solo icono)
             }).addTo(map);
 
             // Añade el grupo de marcadores al mapa
@@ -314,7 +379,7 @@
             }
 
             placeModal.classList.remove('hidden');
-            placeModal.classList.add('flex'); // Asegura que flex esté aplicado al mostrar
+            placeModal.classList.add('flex');
         }
 
         // Cierra el modal
@@ -451,25 +516,25 @@
 
         // Crea iconos personalizados (colores ajustados para modo oscuro)
         function createCustomIcon(category) {
-            // Colores base más brillantes o claros para destacar en fondo oscuro/mapa claro
-            let iconColorClass = 'bg-teal-500'; // Accent color por defecto
+            // Colores base más brillantes o claros para destacar en fondo oscuro/mapa oscuro
+            let iconColorClass = 'bg-teal-400'; // Teal más brillante
 
             switch (category) {
                 case 'Restaurante': iconColorClass = 'bg-red-500'; break;
                 case 'Parque Nacional': iconColorClass = 'bg-green-500'; break;
-                case 'Playa': iconColorClass = 'bg-yellow-400'; break; // Amarillo ya destaca
+                case 'Playa': iconColorClass = 'bg-yellow-400'; break;
                 case 'Mirador': iconColorClass = 'bg-purple-500'; break;
-                case 'Ciudad': iconColorClass = 'bg-gray-400'; break; // Gris más claro
-                case 'Otro': iconColorClass = 'bg-blue-500'; break; // Azul brillante
+                case 'Ciudad': iconColorClass = 'bg-gray-400'; break;
+                case 'Otro': iconColorClass = 'bg-blue-500'; break;
             }
 
              return L.divIcon({
-                 // Usamos un borde blanco o claro para mejor visibilidad
+                 // Borde claro para destacar sobre mapa oscuro
                 html: `<span class="flex h-5 w-5 relative">
                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${iconColorClass} opacity-75"></span>
-                           <span class="relative inline-flex rounded-full h-5 w-5 ${iconColorClass} border-2 border-gray-900"></span> {/* Borde oscuro para separar del fondo */}
+                           <span class="relative inline-flex rounded-full h-5 w-5 ${iconColorClass} border-2 border-gray-200"></span> {/* Borde claro */}
                        </span>`,
-                className: '', // Sin clases CSS adicionales aquí
+                className: '',
                 iconSize: [20, 20],
                 iconAnchor: [10, 10],
                 popupAnchor: [0, -10]
@@ -486,10 +551,10 @@
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     map.setView([lat, lng], 14);
-                    // Icono de ubicación actual (azul brillante con borde oscuro)
+                    // Icono de ubicación actual (azul brillante con borde claro)
                     L.marker([lat, lng], {
                          icon: L.divIcon({
-                            html: `<span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 border-4 border-gray-900 shadow-lg"></span>`,
+                            html: `<span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 border-4 border-gray-200 shadow-lg"></span>`, // Borde claro
                             className: '', iconSize: [24, 24], iconAnchor: [12, 12]
                         })
                     }).addTo(map)
@@ -540,11 +605,9 @@
          window.addEventListener('resize', () => {
              map.invalidateSize();
              if (window.innerWidth >= 768 && sidebar.classList.contains('hidden')) {
-                  // En pantallas grandes, si el sidebar estaba oculto (probablemente por acción previa en móvil), lo mostramos
-                  // sidebar.classList.remove('hidden'); // Descomentar si quieres este comportamiento
+                  // sidebar.classList.remove('hidden'); // Opcional: mostrar sidebar en grande si estaba oculto
              } else if (window.innerWidth < 768 && !sidebar.classList.contains('hidden')) {
-                 // En pantallas pequeñas, si el sidebar está visible, lo ocultamos por defecto al redimensionar
-                 sidebar.classList.add('hidden');
+                 sidebar.classList.add('hidden'); // Ocultar sidebar en pequeño si estaba visible
              }
          });
 
