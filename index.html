@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitácora de Viajes - Costa Rica (con Waze y Etiquetas)</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    <title>Bitácora de Viajes - Costa Rica (Info Auto + Imagen URL)</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,223 +13,87 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Estilo para asegurar que el mapa ocupe el espacio disponible */
-        #map { height: 100%; width: 100%; background-color: #ffffff; /* Fondo claro para mapas estándar/satélite */ }
-        /* Asegurar que el contenedor principal ocupe toda la altura y aplicar fuente */
-        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow: hidden; /* Prevenir scroll en body */ }
-
-        /* --- Estilos Modo Oscuro (Interfaz) --- */
-        body { background-color: #111827; /* bg-gray-900 */ } /* Fondo principal oscuro */
-        header, aside, #placeModal > div { background-color: #1f2937; /* bg-gray-800 */ color: #d1d5db /* text-gray-300 */; }
-        header { box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; /* Asegurar que header esté sobre el contenido */ }
-        aside { border-left: 1px solid #374151 /* border-gray-700 */; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }
+        /* Estilos generales y modo oscuro (sin cambios significativos) */
+        #map { height: 100%; width: 100%; background-color: #ffffff; }
+        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow: hidden; }
+        body { background-color: #111827; }
+        header, aside, #placeModal > div { background-color: #1f2937; color: #d1d5db; }
+        header { box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; }
+        aside { border-left: 1px solid #374151; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }
         #placeModal > div { border: 1px solid #374151; }
-        h1, h2, h3, label { color: #e5e7eb /* text-gray-200 */; }
-        input, select, textarea {
-             background-color: #374151; /* bg-gray-700 */
-             color: #e5e7eb; /* text-gray-200 */
-             border: 1px solid #4b5563; /* border-gray-600 */
-             border-radius: 0.375rem; /* rounded-md */
-        }
-        input:focus, select:focus, textarea:focus {
-             outline: none;
-             border-color: #14b8a6; /* border-teal-500 */
-             box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.5); /* ring-teal-500 */
-        }
+        h1, h2, h3, label { color: #e5e7eb; }
+        input, select, textarea { background-color: #374151; color: #e5e7eb; border: 1px solid #4b5563; border-radius: 0.375rem; padding: 0.5rem; /* Padding uniforme */ }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #14b8a6; box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.5); }
         select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem;}
         input[type="date"] { color-scheme: dark; }
         #placesList li { border: 1px solid #374151; }
         #placesList li:hover { background-color: #374151; }
-        #placesList strong { color: #5eead4 /* text-teal-300 */; }
-        #placesList span, #placesList i, #placesList .italic { color: #9ca3af /* text-gray-400 */; }
-        #messageBox { background-color: rgba(17, 24, 39, 0.85); /* bg-gray-900/85 */ color: white; }
+        #placesList strong { color: #5eead4; }
+        #placesList span, #placesList i, #placesList .italic { color: #9ca3af; }
+        #messageBox { background-color: rgba(17, 24, 39, 0.85); color: white; }
         #closeModalBtn { color: #9ca3af; }
         #closeModalBtn:hover { color: #e5e7eb; }
-        .modal-content .border-b { border-color: #374151; }
-        .modal-content .border-t { border-color: #374151; }
+        .modal-content .border-b, .modal-content .border-t { border-color: #374151; }
 
-        /* Estilos personalizados para botones en modo oscuro */
-        .custom-btn {
-            @apply px-3 py-2 sm:px-4 sm:py-2 bg-teal-600 text-white rounded-lg shadow hover:bg-teal-700 transition duration-200 ease-in-out flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+        /* Estilos botones */
+        .custom-btn, .delete-btn, .waze-btn {
+            @apply px-3 py-2 sm:px-4 sm:py-2 text-white rounded-lg shadow transition duration-200 ease-in-out flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
         }
-        .delete-btn {
-             @apply px-3 py-2 sm:px-4 sm:py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed;
-        }
-        /* Estilo para botón Waze */
-        .waze-btn {
-             @apply px-3 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200 ease-in-out flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
-        }
+        .custom-btn { @apply bg-teal-600 hover:bg-teal-700; }
+        .delete-btn { @apply bg-red-600 hover:bg-red-700; }
+        .waze-btn { @apply bg-blue-500 hover:bg-blue-600; }
 
-        /* Estilos para popups de Leaflet en modo oscuro */
-        .leaflet-popup-content-wrapper {
-            background-color: #1f2937; /* bg-gray-800 */
-            color: #d1d5db; /* text-gray-300 */
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-        .leaflet-popup-content {
-            margin: 12px; /* Espacio interno del popup */
-            max-width: 250px; /* Limitar ancho del popup */
-            word-wrap: break-word; /* Evitar que texto largo desborde */
-        }
-         .leaflet-popup-content b { /* Nombre del lugar en popup */
-            color: #e5e7eb; /* text-gray-200 */
-         }
-        .leaflet-popup-tip {
-            background-color: #1f2937; /* bg-gray-800 */
-        }
-        .leaflet-popup-close-button {
-             color: #9ca3af; /* text-gray-400 */
-             transition: color 0.2s ease-in-out;
-             padding: 4px 4px 0 0 !important; /* Ajustar padding botón cerrar */
-             font-size: 16px !important; /* Tamaño botón cerrar */
-        }
-        .leaflet-popup-close-button:hover {
-            color: #e5e7eb; /* text-gray-200 */
-        }
-        /* Botón dentro del popup */
-        .viewDetailsBtn {
-             @apply mt-2 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 transition duration-200 w-full text-center; /* Hacer botón ancho completo */
-        }
+        /* Estilos popups Leaflet */
+        .leaflet-popup-content-wrapper { background-color: #1f2937; color: #d1d5db; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); }
+        .leaflet-popup-content { margin: 12px; max-width: 250px; word-wrap: break-word; }
+        .leaflet-popup-content b { color: #e5e7eb; }
+        .leaflet-popup-tip { background-color: #1f2937; }
+        .leaflet-popup-close-button { color: #9ca3af; transition: color 0.2s ease-in-out; padding: 4px 4px 0 0 !important; font-size: 16px !important; }
+        .leaflet-popup-close-button:hover { color: #e5e7eb; }
+        .viewDetailsBtn { @apply mt-2 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 transition duration-200 w-full text-center; }
 
-        /* Estilos para el control de capas en modo oscuro */
-        .leaflet-control-layers {
-            background-color: rgba(31, 41, 55, 0.9); /* bg-gray-800 con transparencia */
-            border: 1px solid #4b5563; /* bg-gray-600 */
-            border-radius: 5px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-            color: #d1d5db; /* text-gray-300 */
-            max-height: 60vh; /* Limitar altura en pantallas pequeñas */
-            overflow-y: auto; /* Scroll si hay muchas capas */
-        }
-        .leaflet-control-layers-selector {
-             margin-top: 2px;
-             position: relative;
-             top: 1px;
-        }
-        .leaflet-control-layers label {
-             margin-bottom: 0.3em;
-             font-weight: 500;
-             display: flex;
-             align-items: center;
-             gap: 5px;
-             padding: 4px 8px; /* Añadir padding interno */
-             color: #e5e7eb; /* Asegurar texto claro en etiquetas de capa */
-        }
-        .leaflet-control-layers-separator {
-             border-top: 1px solid #4b5563;
-             margin: 5px 0;
-        }
-        /* Asegurar que el radio button y el checkbox sean visibles en modo oscuro */
-        .leaflet-control-layers input[type='radio'],
-        .leaflet-control-layers input[type='checkbox'] {
-            accent-color: #14b8a6; /* Color teal para el control seleccionado */
-            background-color: #374151; /* Fondo del control */
-            border: 1px solid #4b5563; /* Borde del control */
-            cursor: pointer;
-        }
+        /* Estilos control de capas */
+        .leaflet-control-layers { background-color: rgba(31, 41, 55, 0.9); border: 1px solid #4b5563; border-radius: 5px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); color: #d1d5db; max-height: 60vh; overflow-y: auto; }
+        .leaflet-control-layers-selector { margin-top: 2px; position: relative; top: 1px; }
+        .leaflet-control-layers label { margin-bottom: 0.3em; font-weight: 500; display: flex; align-items: center; gap: 5px; padding: 4px 8px; color: #e5e7eb; }
+        .leaflet-control-layers-separator { border-top: 1px solid #4b5563; margin: 5px 0; }
+        .leaflet-control-layers input[type='radio'], .leaflet-control-layers input[type='checkbox'] { accent-color: #14b8a6; background-color: #374151; border: 1px solid #4b5563; cursor: pointer; }
 
-        /* Estilo para el icono de banderín rojo */
-        .red-flag-icon {
-            color: #ef4444; /* text-red-500 */
-            font-size: 1.5rem; /* Tamaño del icono */
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Sombra para destacar */
-            line-height: 1; /* Ajustar altura de línea */
-        }
+        /* Icono banderín */
+        .red-flag-icon { color: #ef4444; font-size: 1.5rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); line-height: 1; }
 
         /* Ajustes generales */
-        .modal-content {
-            max-height: 85vh; /* Permitir un poco más de altura al modal */
-            overflow-y: auto;
-        }
-        .map-container {
-            height: calc(100vh - 4rem); /* Altura por defecto (escritorio sin sidebar) */
-        }
-        /* Scrollbar oscuro (Webkit) */
-         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1f2937; /* bg-gray-800 */
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4b5563; /* bg-gray-600 */
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #6b7280; /* bg-gray-500 */
-        }
+        .modal-content { max-height: 85vh; overflow-y: auto; }
+        .map-container { height: calc(100vh - 4rem); }
+        /* Scrollbar oscuro */
+         ::-webkit-scrollbar { width: 8px; height: 8px; }
+         ::-webkit-scrollbar-track { background: #1f2937; border-radius: 10px; }
+         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+         ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
-        /* --- Estilos Responsivos Específicos --- */
-        @media (max-width: 767px) { /* Móviles (hasta md) */
-             .main-content {
-                 flex-direction: column; /* Apilar mapa y sidebar (si se muestra) */
-                 height: calc(100vh - 4rem); /* Ocupar espacio restante */
-                 overflow: hidden; /* Evitar doble scroll */
-             }
-             .map-container {
-                 height: 60%; /* Mapa ocupa la mayor parte */
-                 min-height: 300px; /* Altura mínima mapa */
-             }
-             #sidebar {
-                 width: 100%; /* Sidebar ocupa todo el ancho */
-                 max-height: 40%; /* Limitado al 40% inferior */
-                 overflow-y: auto; /* Scroll si es necesario */
-                 border-left: none; /* Quitar borde izquierdo */
-                 border-top: 1px solid #374151; /* Añadir borde superior */
-                 position: absolute; /* Posicionar absolutamente */
-                 bottom: 0; /* Pegado abajo */
-                 left: 0;
-                 right: 0;
-                 z-index: 5; /* Debajo del header pero sobre el mapa base */
-                 transition: transform 0.3s ease-in-out; /* Animación suave */
-                 transform: translateY(100%); /* Oculto por defecto abajo */
-             }
-             #sidebar.active {
-                  transform: translateY(0); /* Mostrar deslizando desde abajo */
-             }
-             /* Ajustar modal para móviles */
-             #placeModal > div {
-                 width: 95%; /* Más ancho en móviles */
-                 max-width: none; /* Quitar límite de ancho máximo */
-             }
-             /* Ocultar texto en botones principales en pantallas muy pequeñas */
+         /* NUEVO: Estilos para previsualización de imagen URL */
+         #imagePreviewContainer { min-height: 100px; background-color: #374151; /* Fondo similar a inputs */ }
+         #imagePreview { max-height: 150px; max-width: 100%; display: block; margin: 0 auto; border-radius: 0.375rem; /* object-fit: cover; */ /* Opcional: para cubrir el área */ }
+         #imagePreview.hidden { display: none; } /* Ocultar si no hay imagen o hay error */
+         #imagePreviewPlaceholder { color: #9ca3af; font-size: 0.875rem; }
+
+        /* --- Estilos Responsivos --- */
+        @media (max-width: 767px) {
+             .main-content { flex-direction: column; height: calc(100vh - 4rem); overflow: hidden; }
+             .map-container { height: 60%; min-height: 300px; }
+             #sidebar { width: 100%; max-height: 40%; overflow-y: auto; border-left: none; border-top: 1px solid #374151; position: absolute; bottom: 0; left: 0; right: 0; z-index: 5; transition: transform 0.3s ease-in-out; transform: translateY(100%); }
+             #sidebar.active { transform: translateY(0); }
+             #placeModal > div { width: 95%; max-width: none; }
               @media (max-width: 380px) {
-                   #findMeBtn span, #toggleListBtn span {
-                        display: none;
-                   }
-                   .custom-btn, .delete-btn, .waze-btn { /* Incluir waze-btn */
-                        padding-left: 0.75rem; /* px-3 */
-                        padding-right: 0.75rem; /* px-3 */
-                   }
-                   /* Ocultar texto en botones del modal también */
-                   #deletePlaceBtn span, #savePlaceBtn span, #shareWazeBtn span {
-                       display: none;
-                   }
-                   #deletePlaceBtn i, #savePlaceBtn i, #shareWazeBtn i {
-                       margin-right: 0 !important; /* Quitar margen si solo hay icono */
-                   }
+                   #findMeBtn span, #toggleListBtn span { display: none; }
+                   .custom-btn, .delete-btn, .waze-btn { padding-left: 0.75rem; padding-right: 0.75rem; }
+                   #deletePlaceBtn span, #savePlaceBtn span, #shareWazeBtn span { display: none; }
+                   #deletePlaceBtn i, #savePlaceBtn i, #shareWazeBtn i { margin-right: 0 !important; }
               }
         }
-
-        @media (min-width: 768px) { /* Escritorio (md y más) */
-             .map-container {
-                 /* La altura se ajusta automáticamente por flexbox */
-             }
-              #sidebar {
-                 /* Estilos por defecto de Tailwind md:block, md:w-1/3 etc. se aplican */
-                  position: relative; /* Volver a posición relativa */
-                  bottom: auto;
-                  transform: none; /* Quitar transformación */
-                  max-height: none; /* Quitar límite de altura */
-                  border-top: none; /* Quitar borde superior */
-                  border-left: 1px solid #374151; /* Restaurar borde izquierdo */
-             }
-             #sidebar.active { /* Asegurar que no tenga transformaciones en escritorio */
-                 transform: none;
-             }
+        @media (min-width: 768px) {
+              #sidebar { position: relative; bottom: auto; transform: none; max-height: none; border-top: none; border-left: 1px solid #374151; }
+             #sidebar.active { transform: none; }
         }
     </style>
 </head>
@@ -261,7 +125,7 @@
             <h2 class="text-lg font-semibold mb-3 text-gray-200">Lugares Guardados</h2>
             <div class="mb-4">
                 <label for="categoryFilter" class="block text-sm font-medium text-gray-400 mb-1">Filtrar por categoría:</label>
-                <select id="categoryFilter" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                <select id="categoryFilter" class="w-full p-2">
                     <option value="all">Todas</option>
                     <option value="Restaurante">Restaurante</option>
                     <option value="Parque Nacional">Parque Nacional</option>
@@ -293,16 +157,17 @@
 
                     <div class="mb-4">
                         <label for="placeName" class="block text-sm font-medium text-gray-300 mb-1">Nombre del Lugar</label>
-                        <input type="text" id="placeName" name="placeName" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 placeholder-gray-500" required placeholder="Ej: Volcán Poás">
+                        <input type="text" id="placeName" name="placeName" class="w-full p-2" required placeholder="Ej: Volcán Poás">
                     </div>
                     <div class="mb-4">
                         <label for="placeNotes" class="block text-sm font-medium text-gray-300 mb-1">Notas / Descripción</label>
-                        <textarea id="placeNotes" name="placeNotes" rows="3" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 placeholder-gray-500" placeholder="Describe tu experiencia..."></textarea>
+                        <textarea id="placeNotes" name="placeNotes" rows="3" class="w-full p-2" placeholder="Describe tu experiencia o pega la dirección encontrada..."></textarea>
+                         <p id="infoLoadingIndicator" class="text-xs text-teal-400 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Buscando información...</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label for="placeCategory" class="block text-sm font-medium text-gray-300 mb-1">Categoría</label>
-                            <select id="placeCategory" name="placeCategory" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <select id="placeCategory" name="placeCategory" class="w-full p-2">
                                 <option value="Otro">Otro</option>
                                 <option value="Restaurante">Restaurante</option>
                                 <option value="Parque Nacional">Parque Nacional</option>
@@ -313,7 +178,7 @@
                         </div>
                         <div>
                             <label for="placeRating" class="block text-sm font-medium text-gray-300 mb-1">Calificación</label>
-                            <select id="placeRating" name="placeRating" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <select id="placeRating" name="placeRating" class="w-full p-2">
                                 <option value="0">Sin calificar</option>
                                 <option value="1">⭐</option>
                                 <option value="2">⭐⭐</option>
@@ -325,11 +190,16 @@
                     </div>
                      <div class="mb-4">
                          <label for="placeDate" class="block text-sm font-medium text-gray-300 mb-1">Fecha de Visita</label>
-                         <input type="date" id="placeDate" name="placeDate" class="w-full p-2 border border-gray-600 bg-gray-700 text-gray-200 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500" style="color-scheme: dark;">
+                         <input type="date" id="placeDate" name="placeDate" class="w-full p-2" style="color-scheme: dark;">
                      </div>
+
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Fotos</label>
-                        <div class="text-sm text-gray-400">(Funcionalidad de carga de fotos no implementada en esta demo)</div>
+                        <label for="placeImageUrl" class="block text-sm font-medium text-gray-300 mb-1">URL de Imagen (Opcional)</label>
+                        <input type="url" id="placeImageUrl" name="placeImageUrl" class="w-full p-2" placeholder="https://ejemplo.com/imagen.jpg">
+                        <div id="imagePreviewContainer" class="mt-2 w-full rounded-md border border-gray-600 flex items-center justify-center p-2">
+                             <img id="imagePreview" src="" alt="Vista previa" class="hidden"/>
+                             <span id="imagePreviewPlaceholder" class="">Pega una URL para ver la imagen</span>
+                        </div>
                     </div>
 
                     <div class="flex flex-wrap justify-end gap-2 sm:gap-3 mt-6 pt-4 border-t border-gray-700">
@@ -363,6 +233,7 @@
         const defaultZoom = 8;
         let layerControl;
         let currentWazeListener = null;
+        let currentFetchAbortController = null; // Para cancelar fetches anteriores
 
         // --- Elementos del DOM ---
         const placeModal = document.getElementById('placeModal');
@@ -377,99 +248,161 @@
         const shareWazeBtn = document.getElementById('shareWazeBtn');
         const messageBox = document.getElementById('messageBox');
         const mapContainer = document.getElementById('mapContainer');
+        // NUEVO/MODIFICADO: Elementos para Imagen URL
+        const placeImageUrlInput = document.getElementById('placeImageUrl');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewPlaceholder = document.getElementById('imagePreviewPlaceholder');
+        // NUEVO: Indicador de carga
+        const infoLoadingIndicator = document.getElementById('infoLoadingIndicator');
+
 
         // --- Funciones ---
 
         function showMessage(text, duration = 3000) {
             messageBox.textContent = text;
             messageBox.classList.remove('hidden');
-            setTimeout(() => {
-                messageBox.classList.add('hidden');
-            }, duration);
+            setTimeout(() => { messageBox.classList.add('hidden'); }, duration);
         }
 
         function initMap() {
-            map = L.map('map', {
-                center: defaultCenter,
-                zoom: defaultZoom,
-                maxBounds: costaRicaBounds,
-                maxBoundsViscosity: 0.9,
-                zoomControl: false
-            });
+            map = L.map('map', { center: defaultCenter, zoom: defaultZoom, maxBounds: costaRicaBounds, maxBoundsViscosity: 0.9, zoomControl: false });
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-             L.control.zoom({ position: 'bottomright' }).addTo(map);
+            // Capas Base
+            const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri', minZoom: 7, maxZoom: 18 });
+            const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', minZoom: 7, maxZoom: 19 });
+            const baseMaps = { "Estándar": osmStandard, "Satélite": esriSatellite };
+            osmStandard.addTo(map);
 
-            // --- Definición de Capas Base ---
-            const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-                 minZoom: 7,
-                 maxZoom: 18
-            });
-            const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                minZoom: 7,
-                maxZoom: 19
-            });
+            // Capa de Etiquetas (Overlay)
+            const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { attribution: 'Labels &copy; Esri', minZoom: 7, maxZoom: 19, pane: 'overlayPane' });
+            const overlayMaps = { "<span class='text-gray-200'>Etiquetas</span>": esriLabels };
 
-            const baseMaps = {
-                "Estándar": osmStandard,
-                "Satélite": esriSatellite
-            };
-
-             osmStandard.addTo(map); // Capa base por defecto
-
-            // --- NUEVO: Definición de Capa de Etiquetas (Overlay) ---
-            const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Labels &copy; Esri &mdash; Source: Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo, MapmyIndia, © OpenStreetMap contributors, and the GIS User Community',
-                minZoom: 7,
-                maxZoom: 19,
-                pane: 'overlayPane' // Asegura que se muestre sobre las capas base
-            });
-
-            // --- Objeto para Capas Overlay ---
-            const overlayMaps = {
-                "<span class='text-gray-200'>Etiquetas (Carreteras, Lugares)</span>": esriLabels // Nombre descriptivo para el control
-            };
-
-            // --- Crear y Añadir Control de Capas (con Overlays) ---
-            layerControl = L.control.layers(baseMaps, overlayMaps, { // Añadido overlayMaps
-                position: 'bottomleft',
-                collapsed: true
-            }).addTo(map);
-
-            // --- Añadir Capa de Etiquetas por defecto al mapa ---
-             esriLabels.addTo(map); // Mostrar etiquetas por defecto
+            // Control de Capas
+            layerControl = L.control.layers(baseMaps, overlayMaps, { position: 'bottomleft', collapsed: true }).addTo(map);
+            esriLabels.addTo(map); // Etiquetas activas por defecto
 
             markers.addTo(map);
             map.on('click', onMapClick);
             loadPlaces();
             map.getContainer().style.backgroundColor = '#ffffff';
-            map.on('baselayerchange', function (e) {
-                 map.getContainer().style.backgroundColor = '#ffffff';
-            });
-
+            map.on('baselayerchange', () => { map.getContainer().style.backgroundColor = '#ffffff'; });
             handleResize();
+
+            // NUEVO: Listener para actualizar preview de imagen al pegar/escribir URL
+            placeImageUrlInput.addEventListener('input', updateImagePreview);
+            placeImageUrlInput.addEventListener('paste', () => setTimeout(updateImagePreview, 0)); // Pequeño delay al pegar
         }
+
+        // NUEVO: Actualiza la vista previa de la imagen en el modal
+        function updateImagePreview() {
+            const url = placeImageUrlInput.value.trim();
+            if (url) {
+                imagePreview.src = url;
+                imagePreview.classList.remove('hidden');
+                imagePreviewPlaceholder.classList.add('hidden');
+                // Manejo de error si la URL no carga una imagen válida
+                imagePreview.onerror = () => {
+                    imagePreview.classList.add('hidden');
+                    imagePreviewPlaceholder.classList.remove('hidden');
+                    imagePreviewPlaceholder.textContent = "No se pudo cargar la imagen desde esa URL";
+                };
+                imagePreview.onload = () => {
+                     // Si carga bien, nos aseguramos que se vea y el placeholder no
+                     imagePreview.classList.remove('hidden');
+                     imagePreviewPlaceholder.classList.add('hidden');
+                }
+            } else {
+                imagePreview.src = '';
+                imagePreview.classList.add('hidden');
+                imagePreviewPlaceholder.classList.remove('hidden');
+                imagePreviewPlaceholder.textContent = "Pega una URL para ver la imagen";
+            }
+        }
+
+
+        // NUEVO: Busca información del lugar usando Nominatim
+        async function fetchPlaceInfo(lat, lng) {
+            // Cancelar fetch anterior si existe
+            if (currentFetchAbortController) {
+                currentFetchAbortController.abort();
+            }
+            currentFetchAbortController = new AbortController();
+            const signal = currentFetchAbortController.signal;
+
+            // Mostrar indicador de carga
+            infoLoadingIndicator.classList.remove('hidden');
+            const placeNotesElement = document.getElementById('placeNotes');
+
+            // Construir URL de la API Nominatim (Reverse Geocoding)
+            // 'accept-language': 'es' para intentar obtener resultados en español
+            const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es`;
+
+            try {
+                const response = await fetch(apiUrl, { signal }); // Pasar la señal para poder cancelar
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // Si se canceló mientras se esperaba la respuesta, no hacer nada
+                if (signal.aborted) return;
+
+                console.log("Nominatim response:", data); // Para depuración
+
+                if (data && data.display_name) {
+                    // Poner la dirección encontrada en el campo de notas
+                    // Si el campo ya tiene algo, añadirlo al principio
+                    const currentNotes = placeNotesElement.value;
+                    placeNotesElement.value = `${data.display_name}${currentNotes ? '\n\n' + currentNotes : ''}`;
+                    showMessage("Información del lugar añadida a las notas.");
+                } else {
+                    showMessage("No se encontró información detallada para este punto.", 3000);
+                }
+
+            } catch (error) {
+                 if (error.name === 'AbortError') {
+                    console.log('Fetch de información abortado.'); // No mostrar error al usuario si fue cancelado
+                 } else {
+                    console.error("Error fetching place info:", error);
+                    showMessage("Error al buscar información del lugar.", 3000);
+                 }
+            } finally {
+                // Ocultar indicador de carga (solo si no se abortó antes de terminar)
+                if (!signal.aborted) {
+                    infoLoadingIndicator.classList.add('hidden');
+                    currentFetchAbortController = null; // Limpiar controlador
+                }
+            }
+        }
+
 
         function onMapClick(e) {
             if (e.originalEvent.target.closest('.leaflet-control')) return;
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
-            openPlaceModal(null, lat, lng);
+            openPlaceModal(null, e.latlng.lat, e.latlng.lng);
         }
 
+        // Abre el modal, ahora también llama a fetchPlaceInfo si es nuevo lugar
         function openPlaceModal(place = null, lat = null, lng = null) {
             placeForm.reset();
+            placeImageUrlInput.value = ''; // Limpiar URL de imagen
+            updateImagePreview(); // Limpiar preview
             document.getElementById('placeId').value = '';
             deletePlaceBtn.classList.add('hidden');
             shareWazeBtn.classList.add('hidden');
+            infoLoadingIndicator.classList.add('hidden'); // Ocultar indicador
 
             if (currentWazeListener) {
                 shareWazeBtn.removeEventListener('click', currentWazeListener);
                 currentWazeListener = null;
             }
+             // Cancelar fetch de info si estaba en curso
+             if (currentFetchAbortController) {
+                currentFetchAbortController.abort();
+                currentFetchAbortController = null;
+            }
 
-            if (place) {
+            if (place) { // Editando
                 document.getElementById('modalTitle').textContent = 'Editar Lugar';
                 document.getElementById('placeId').value = place.id;
                 document.getElementById('placeLat').value = place.lat;
@@ -479,6 +412,8 @@
                 document.getElementById('placeCategory').value = place.category;
                 document.getElementById('placeRating').value = place.rating;
                 document.getElementById('placeDate').value = place.date;
+                placeImageUrlInput.value = place.imageUrl || ''; // Cargar URL de imagen guardada
+                updateImagePreview(); // Mostrar imagen guardada
                 deletePlaceBtn.classList.remove('hidden');
 
                 if (place.lat && place.lng) {
@@ -487,12 +422,14 @@
                     shareWazeBtn.addEventListener('click', currentWazeListener);
                 }
 
-            } else if (lat !== null && lng !== null) {
+            } else if (lat !== null && lng !== null) { // Añadiendo desde mapa
                 document.getElementById('modalTitle').textContent = 'Añadir Nuevo Lugar';
                 document.getElementById('placeLat').value = lat;
                 document.getElementById('placeLng').value = lng;
                 document.getElementById('placeDate').valueAsDate = new Date();
-            } else {
+                // *** LLAMAR A BUSCAR INFORMACIÓN ***
+                fetchPlaceInfo(lat, lng);
+            } else { // Añadiendo sin ubicación
                  document.getElementById('modalTitle').textContent = 'Añadir Nuevo Lugar (Sin Ubicación)';
                  document.getElementById('placeDate').valueAsDate = new Date();
                  showMessage("Haz clic en el mapa para establecer la ubicación", 4000);
@@ -509,8 +446,20 @@
                 shareWazeBtn.removeEventListener('click', currentWazeListener);
                 currentWazeListener = null;
             }
+             // Cancelar fetch de info si estaba en curso al cerrar
+             if (currentFetchAbortController) {
+                currentFetchAbortController.abort();
+                currentFetchAbortController = null;
+                infoLoadingIndicator.classList.add('hidden'); // Asegurar que se oculte
+            }
+            // Limpiar preview de imagen
+            imagePreview.src = '';
+            imagePreview.classList.add('hidden');
+            imagePreviewPlaceholder.classList.remove('hidden');
+            imagePreviewPlaceholder.textContent = "Pega una URL para ver la imagen";
         }
 
+        // Guarda lugar, incluyendo la URL de la imagen
         function savePlace(e) {
             e.preventDefault();
             const id = document.getElementById('placeId').value;
@@ -521,11 +470,13 @@
             const category = document.getElementById('placeCategory').value;
             const rating = document.getElementById('placeRating').value;
             const date = document.getElementById('placeDate').value;
+            const imageUrl = placeImageUrlInput.value.trim(); // Obtener URL de imagen
 
             if (!name) { showMessage("Por favor, introduce un nombre.", 3000); return; }
-            if (isNaN(lat) || isNaN(lng)) { showMessage("Ubicación inválida. Haz clic en el mapa.", 3000); return; }
+            if (isNaN(lat) || isNaN(lng)) { showMessage("Ubicación inválida.", 3000); return; }
 
-            const placeData = { id: id || Date.now().toString(), lat, lng, name, notes, category, rating, date };
+            // Añadir 'imageUrl' al objeto
+            const placeData = { id: id || Date.now().toString(), lat, lng, name, notes, category, rating, date, imageUrl: imageUrl };
             const existingIndex = places.findIndex(p => p.id === placeData.id);
 
             if (existingIndex > -1) {
@@ -535,7 +486,15 @@
                 places.push(placeData);
                 showMessage("Lugar guardado");
             }
-            localStorage.setItem('myTravelLogPlaces', JSON.stringify(places));
+
+            try {
+                 localStorage.setItem('myTravelLogPlaces', JSON.stringify(places));
+            } catch (error) {
+                console.error("Error guardando en localStorage:", error);
+                showMessage("Error al guardar los datos.", 5000);
+                return;
+            }
+
             renderPlaces();
             closeModal();
         }
@@ -555,10 +514,17 @@
 
         function loadPlaces() {
             const savedPlaces = localStorage.getItem('myTravelLogPlaces');
-            places = savedPlaces ? JSON.parse(savedPlaces) : [];
+            try {
+                places = savedPlaces ? JSON.parse(savedPlaces) : [];
+            } catch (error) {
+                console.error("Error parseando lugares guardados:", error);
+                places = [];
+                localStorage.removeItem('myTravelLogPlaces');
+            }
             renderPlaces();
         }
 
+        // Renderiza lugares, mostrando indicador de imagen en lista/popup
         function renderPlaces() {
             markers.clearLayers();
             placesListElement.innerHTML = '';
@@ -570,34 +536,33 @@
                  placesListElement.innerHTML = `<li class="text-gray-400 italic p-2">${message}</li>`;
             }
 
-            const redFlagIcon = L.divIcon({
-                 html: '<i class="fas fa-flag red-flag-icon"></i>',
-                 className: '', iconSize: [24, 24], iconAnchor: [0, 24], popupAnchor: [12, -24]
-            });
+            const redFlagIcon = L.divIcon({ html: '<i class="fas fa-flag red-flag-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [0, 24], popupAnchor: [12, -24] });
 
             filteredPlaces.forEach(place => {
+                // Indicador de imagen en popup
+                const hasImageIndicator = place.imageUrl ? ' <i class="fas fa-image text-xs text-blue-400" title="Tiene imagen asociada"></i>' : '';
                 const marker = L.marker([place.lat, place.lng], { icon: redFlagIcon })
-                    .bindPopup(`<b>${place.name}</b><br>${place.category}<br><button class="viewDetailsBtn" data-id="${place.id}">Ver Detalles</button>`)
+                    .bindPopup(`<b>${place.name}</b>${hasImageIndicator}<br>${place.category}<br><button class="viewDetailsBtn" data-id="${place.id}">Ver Detalles</button>`)
                     .addTo(markers);
 
                 marker.on('popupopen', (e) => {
-                    const popup = e.popup;
-                    const btn = popup.getElement().querySelector('.viewDetailsBtn');
+                    const btn = e.popup.getElement().querySelector('.viewDetailsBtn');
                     if (btn) {
                         btn.removeEventListener('click', handleViewDetailsClick);
                         btn.addEventListener('click', handleViewDetailsClick);
                     }
                 });
 
+                // Indicador de imagen en lista
+                const imageIconInList = place.imageUrl ? '<i class="fas fa-image text-blue-400 ml-2" title="Tiene imagen asociada"></i>' : '';
                 const listItem = document.createElement('li');
                 listItem.className = 'p-3 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer flex justify-between items-center transition duration-150';
                 listItem.innerHTML = `
-                    <div>
-                        <strong class="text-teal-400">${place.name}</strong>
-                        <span class="block text-sm text-gray-400">${place.category} - ${place.date || 'Sin fecha'}</span>
-                    </div>
-                    <i class="fas fa-chevron-right text-gray-500"></i>
-                `;
+                    <div class="flex items-center overflow-hidden mr-2"> <div class="truncate"> <strong class="text-teal-400">${place.name}</strong>
+                           <span class="block text-sm text-gray-400 truncate">${place.category} - ${place.date || 'Sin fecha'}</span>
+                        </div>
+                        ${imageIconInList} </div>
+                    <i class="fas fa-chevron-right text-gray-500 flex-shrink-0"></i> `;
                 listItem.addEventListener('click', () => {
                     map.setView([place.lat, place.lng], 15);
                     marker.openPopup();
@@ -621,11 +586,9 @@
         function shareWithWaze(lat, lon) {
             if (lat && lon) {
                 const wazeUrl = `waze://?ll=${lat},${lon}&navigate=yes`;
-                console.log(`Intentando abrir Waze: ${wazeUrl}`);
                 showMessage('Abriendo Waze...');
                 window.location.href = wazeUrl;
             } else {
-                console.error('Coordenadas inválidas para Waze.');
                 showMessage('Error: Coordenadas inválidas para Waze.', 4000);
             }
         }
@@ -633,16 +596,12 @@
         function findMe() {
             findMeBtn.disabled = true;
             findMeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span class="hidden sm:inline ml-2">Buscando...</span>';
-
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(position => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     map.setView([lat, lng], 14);
-                     const currentLocationIcon = L.divIcon({
-                         html: `<span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 border-4 border-white shadow-lg"></span>`,
-                         className: '', iconSize: [24, 24], iconAnchor: [12, 12]
-                     });
+                     const currentLocationIcon = L.divIcon({ html: `<span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 border-4 border-white shadow-lg"></span>`, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
                     L.marker([lat, lng], { icon: currentLocationIcon })
                         .addTo(map)
                         .bindPopup("<b>¡Estás aquí!</b><br>Clic en el mapa para guardar un lugar.").openPopup();
@@ -668,15 +627,11 @@
 
         function toggleSidebar() {
             sidebar.classList.toggle('active');
-             setTimeout(() => {
-                 map.invalidateSize();
-             }, 300);
+             setTimeout(() => { map.invalidateSize(); }, 300);
         }
 
         function handleResize() {
-            if (window.innerWidth >= 768) {
-                sidebar.classList.remove('active');
-            }
+            if (window.innerWidth >= 768) { sidebar.classList.remove('active'); }
              map.invalidateSize();
         }
 
