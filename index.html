@@ -47,7 +47,6 @@
             margin-right: 8px;
         }
         /* Ocultar scrollbar en modal si no es necesario */
-        /* **MODIFICADO: Aplicar scrollbar a la parte interna del modal** */
         #place-modal .modal-content-area {
              scrollbar-width: thin;
              scrollbar-color: #9ca3af #e5e7eb;
@@ -119,7 +118,7 @@
 
     {/* Modal - Contenedor principal con padding */}
     <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40 hidden p-4">
-        {/* **MODIFICADO: Contenedor interno con ancho responsivo y scroll** */}
+        {/* Contenedor interno con ancho responsivo y scroll */}
          <div class="bg-white rounded-lg shadow-xl w-full sm:max-w-lg md:max-w-xl max-h-[90vh] flex flex-col">
              {/* Área de contenido con scroll interno */}
              <div class="modal-content-area overflow-y-auto">
@@ -166,7 +165,7 @@
                      </div>
                  </form>
             </div>
-             {/* **MODIFICADO: Área de botones separada (sin scroll)** */}
+             {/* Área de botones separada (sin scroll) */}
              <div class="p-6 pt-4 border-t border-gray-200 space-y-3">
                   <button type="submit" form="place-form" id="save-place-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-150 text-lg"> Guardar Lugar </button>
                   <a id="modal-directions-btn" href="#" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-directions"></i> Cómo llegar (Google Maps) </a>
@@ -330,3 +329,6 @@
     </script>
 </body>
 </html>
+```
+
+Espero que esta versión te sea más útil. ¡Avísame si necesitas algo m
