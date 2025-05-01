@@ -57,7 +57,14 @@
         header .header-btn i { font-size: 1rem; flex-shrink: 0; }
         header .header-btn span { display: none; }
 
-        /* Removed .modal-footer-buttons styles */
+        /* Container for modal footer buttons - Single Row Wrap */
+        .modal-footer-buttons {
+            @apply flex flex-wrap justify-end gap-3 mt-4 pt-4 border-t border-gray-700; /* Reduced margin-top */
+        }
+        /* Ensure icons/svgs inside modal buttons don't shrink */
+        .modal-footer-buttons button > i, .modal-footer-buttons button > svg {
+            flex-shrink: 0;
+        }
 
         /* --- Leaflet Popup & Control Styles --- */
         .leaflet-popup-content-wrapper { background-color: var(--bg-secondary); color: var(--text-primary); border-radius: 10px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); }
@@ -295,12 +302,6 @@
 
 
         // --- Functions ---
-        // ... (Keep existing JS functions like showMessage, initMap, fetchPlaceInfo, etc.) ...
-        // ... (Make sure openPlaceModal and closeModal don't reference deleted button variables if they did) ...
-        // ... (Keep savePlace function as it's triggered by form submit) ...
-        // ... (Keep deletePlace function logic, but listener attachment is removed) ...
-        // ... (Keep loadPlaces, renderPlaces, handleViewDetailsClick, shareWithWaze, sharePlace, findMe, toggleSidebar, handleResize, formatDate, exportToJson, importFromJson) ...
-
          /**
          * Shows a temporary message to the user.
          * @param {string} text - The message text.
@@ -358,6 +359,7 @@
             importFileInput.addEventListener('change', importFromJson);
             // Add listeners for the action buttons (delete, share, waze) if they exist
             deletePlaceBtn.addEventListener('click', deletePlace);
+            // Listeners for sharePlaceBtn and shareWazeBtn are added dynamically in openPlaceModal
         }
 
 
@@ -663,16 +665,19 @@
          * @param {object} place - The place object to share.
          */
         async function sharePlace(place) {
-            if (!('share' in navigator)) {
-                showMessage("La función de compartir no está disponible en este navegador.", 4000);
+            // Check for Web Share API support
+            if (!navigator.share) {
+                showMessage("La función de compartir no es soportada por este navegador.", 4000);
                 return;
             }
-            if (!place || !place.lat || !place.lng || !place.name) {
-                 showMessage("Faltan datos para compartir el lugar.", 4000);
+             // Validate required place data
+            if (!place || typeof place.lat !== 'number' || typeof place.lng !== 'number' || !place.name) {
+                 showMessage("Faltan datos (nombre o ubicación) para compartir.", 4000);
                  return;
             }
 
-            const googleMapsUrl = `https://www.google.com/maps?q=$${place.lat},${place.lng}`;
+            // Corrected Google Maps URL format
+            const googleMapsUrl = `https://www.google.com/maps?q=lat,lng=${place.lat},${place.lng}`;
             const shareData = {
                 title: `Lugar: ${place.name}`,
                 text: `Echa un vistazo a este lugar que guardé: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes.substring(0, 100) + '...' : ''}`,
@@ -684,6 +689,7 @@
                 showMessage('Lugar compartido con éxito!');
             } catch (err) {
                 console.error('Error al compartir:', err);
+                // Don't show error if user cancelled the share action
                 if (err.name !== 'AbortError') {
                     showMessage(`Error al compartir: ${err.message}`, 4000);
                 }
