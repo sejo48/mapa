@@ -2,878 +2,741 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bitácora CR (Móvil)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Lugares - Costa Rica</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* Estilos adicionales para asegurar que el mapa ocupe espacio */
+        #map { height: calc(100vh - 4rem); /* Altura total menos la cabecera */ }
+        /* Ocultar scrollbars innecesarios */
+        body { overflow: hidden; }
+        /* Estilo para el marcador de ubicación actual */
+        .current-location-marker {
+            background-color: #3b82f6; /* Azul */
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        /* Asegurar que los popups de Leaflet usen la fuente Inter */
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo para estrellas de calificación */
+        .star-rating .fa-star { cursor: pointer; }
+        .star-rating .fa-star.selected { color: #facc15; } /* Amarillo */
+        .star-rating .fa-star:not(.selected) { color: #d1d5db; } /* Gris claro */
+
+        /* Estilo para mensaje de carga en el modal */
+        #address-loading-message {
+            font-style: italic;
+            color: #6b7280; /* gray-500 */
+            font-size: 0.875rem; /* text-sm */
+        }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* --- Base Styles & Modern Color Palette --- */
-        :root {
-            --bg-primary: #111827; /* Dark Gray */
-            --bg-secondary: #1f2937; /* Medium Gray */
-            --bg-tertiary: #374151; /* Light Gray */
-            --text-primary: #f3f4f6; /* Almost White */
-            --text-secondary: #9ca3af; /* Medium Gray Text */
-            --accent-primary: #2dd4bf; /* Teal */
-            --accent-secondary: #3b82f6; /* Blue */
-            --danger: #ef4444; /* Red */
-            --border-color: #4b5563; /* Gray Border */
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        // Configuración de Tailwind para usar la fuente Inter
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
         }
-
-        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow: hidden; background-color: var(--bg-primary); color: var(--text-primary); }
-        #map { height: 100%; width: 100%; background-color: #ffffff; border-radius: 0 0 0.5rem 0.5rem; }
-        header { background-color: var(--bg-secondary); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); z-index: 10; position: sticky; top: 0; }
-        aside { background-color: var(--bg-primary); border-top: 1px solid var(--border-color); box-shadow: 0 -2px 5px rgba(0,0,0,0.1); transition: height 0.3s ease-in-out, padding 0.3s ease-in-out; }
-        #placeModal > div { background-color: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        h1, h2, h3, label { color: var(--text-primary); }
-        input, select, textarea { background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.75rem; width: 100%; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.3); }
-        select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.75rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 3rem;}
-        input[type="date"] { color-scheme: dark; }
-        input[type="file"] { display: none; }
-        #placesList li { border: 1px solid var(--border-color); background-color: var(--bg-secondary); border-radius: 0.5rem; transition: background-color 0.2s; }
-        #placesList li:hover { background-color: var(--bg-tertiary); }
-        #placesList strong { color: var(--accent-primary); font-weight: 600; }
-        #placesList span, #placesList i, #placesList .italic { color: var(--text-secondary); }
-        #messageBox { background-color: rgba(17, 24, 39, 0.9); color: white; z-index: 1000; backdrop-filter: blur(2px); }
-        #closeModalBtn { color: var(--text-secondary); }
-        #closeModalBtn:hover { color: var(--text-primary); }
-        .modal-content .border-b, .modal-content .border-t { border-color: var(--border-color); }
-
-        /* --- Button Styles --- */
-        /* Style for Import/Export buttons */
-        .btn-io { @apply px-3 py-1.5 text-xs rounded-lg shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 text-white transition duration-200 ease-in-out disabled:opacity-60; }
-        .btn-io > i { flex-shrink: 0; }
-
-        /* Header buttons */
-        header .header-btn { @apply px-3 py-2 text-sm font-semibold rounded-lg shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 bg-gray-600 hover:bg-gray-700 focus:ring-gray-500 text-white transition duration-200 ease-in-out disabled:opacity-60; }
-        header .header-btn i { font-size: 1rem; flex-shrink: 0; }
-        header .header-btn span { display: none; }
-
-        /* Container for modal footer buttons - Single Row Wrap */
-        .modal-footer-buttons {
-            @apply flex flex-wrap justify-end gap-3 mt-4 pt-4 border-t border-gray-700; /* Reduced margin-top */
-        }
-        /* Ensure icons/svgs inside modal buttons don't shrink */
-        .modal-footer-buttons button > i, .modal-footer-buttons button > svg {
-            flex-shrink: 0;
-        }
-
-        /* --- Leaflet Popup & Control Styles --- */
-        .leaflet-popup-content-wrapper { background-color: var(--bg-secondary); color: var(--text-primary); border-radius: 10px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); }
-        .leaflet-popup-content { margin: 15px; line-height: 1.5; max-width: 220px; word-wrap: break-word; font-size: 0.9rem; }
-        .leaflet-popup-content b { color: var(--accent-primary); font-weight: 600; }
-        .leaflet-popup-tip { background-color: var(--bg-secondary); }
-        .leaflet-popup-close-button { color: var(--text-secondary); transition: color 0.2s ease-in-out; padding: 5px 5px 0 0 !important; font-size: 1.1rem !important; }
-        .leaflet-popup-close-button:hover { color: var(--text-primary); }
-        /* Button inside popup */
-        .viewDetailsBtn { @apply mt-2.5 text-xs px-3 py-1 w-full rounded-md shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 focus:ring-teal-500 text-white transition duration-200 ease-in-out disabled:opacity-60; }
-
-        .leaflet-control-layers { background-color: rgba(31, 41, 55, 0.9); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); color: var(--text-primary); max-height: 50vh; overflow-y: auto; backdrop-filter: blur(2px); }
-        .leaflet-control-layers-selector { margin-top: 2px; position: relative; top: 1px; }
-        .leaflet-control-layers label { margin-bottom: 0.3em; font-weight: 500; display: flex; align-items: center; gap: 6px; padding: 5px 10px; color: var(--text-primary); }
-        .leaflet-control-layers-separator { border-top: 1px solid var(--border-color); margin: 6px 0; }
-        .leaflet-control-layers input[type='radio'], .leaflet-control-layers input[type='checkbox'] { accent-color: var(--accent-primary); background-color: var(--bg-tertiary); border: 1px solid var(--border-color); cursor: pointer; margin-right: 6px; }
-
-        /* --- Icons --- */
-        .red-flag-icon { color: var(--danger); font-size: 1.75rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); line-height: 1; }
-        .fa-chevron-right { color: var(--text-secondary); }
-
-        /* --- Layout & Responsiveness (Mobile First) --- */
-        .main-content { display: flex; flex-direction: column; height: calc(100vh - 4rem); /* Header height */ overflow: hidden; }
-        .map-container { height: 60%; /* Map takes more space */ min-height: 200px; flex-shrink: 0; position: relative; }
-        #sidebar { width: 100%; height: 40%; /* Sidebar takes remaining space */ overflow-y: auto; padding: 1rem; }
-
-        /* Sidebar hidden state */
-        #sidebar.mobile-hidden {
-            height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            overflow: hidden;
-            border-top: none;
-        }
-
-        /* Modal adjustments */
-        #placeModal > div { width: 95%; max-width: 450px; margin: auto; } /* Centered modal */
-        .modal-content { max-height: 85vh; overflow-y: auto; padding: 1.25rem; }
-
-        /* Scrollbar styling */
-         ::-webkit-scrollbar { width: 6px; height: 6px; }
-         ::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 10px; }
-         ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 10px; }
-         ::-webkit-scrollbar-thumb:hover { background: var(--border-color); }
-
-        /* Desktop adjustments (if needed, but focus is mobile) */
-        @media (min-width: 768px) {
-             #sidebar { height: 35%; }
-             .map-container { height: 65%;}
-        }
-
-    </style>
+    </script>
 </head>
-<body class="flex flex-col h-screen">
+<body class="font-sans flex flex-col h-screen bg-gray-100">
 
-    <header class="p-3 flex justify-between items-center">
-        <h1 class="text-lg font-bold text-gray-100 truncate pr-2">Bitácora CR</h1>
-        <div class="flex space-x-2 flex-shrink-0">
-            <button id="findMeBtn" class="header-btn" title="Encontrar mi ubicación actual">
-                <i class="fas fa-location-crosshairs"></i>
-                <span>Encontrarme</span>
-            </button>
-            <button id="toggleListBtn" class="header-btn" title="Mostrar/Ocultar lista">
-                <i class="fas fa-list"></i>
-                <span>Lista</span>
-            </button>
-        </div>
+    <header class="bg-white shadow-md p-3 flex justify-between items-center z-20 h-16">
+        <button id="toggle-list-btn" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-150">
+            <i class="fas fa-list fa-lg"></i>
+        </button>
+        <h1 class="text-xl font-semibold text-gray-800">Mis Lugares CR</h1>
+        <button id="locate-me-btn" class="text-gray-600 hover:text-blue-600 p-2 rounded-full transition duration-150">
+            <i class="fas fa-crosshairs fa-lg"></i>
+        </button>
     </header>
 
-    <div class="flex-1 flex flex-col main-content overflow-hidden">
-        <div id="mapContainer" class="map-container relative">
-            <div id="map"></div>
-            <div id="messageBox" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg hidden text-sm">
-                Mensaje aquí
+    <div class="flex flex-1 overflow-hidden relative">
+        <aside id="sidebar" class="absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white shadow-lg z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-lg font-semibold">Lugares Guardados</h2>
+                <button id="close-sidebar-btn" class="md:hidden text-gray-500 hover:text-red-500 p-1">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
             </div>
-        </div>
-
-        <aside id="sidebar" class="sidebar">
-            <h2 class="text-lg font-semibold mb-3 text-gray-100">Lugares Guardados</h2>
-            <div class="mb-4">
-                <label for="categoryFilter" class="block text-xs font-medium text-gray-400 mb-1">Filtrar:</label>
-                <select id="categoryFilter" class="text-sm">
-                    <option value="all">Todas las categorías</option>
+            <div class="p-3 border-b">
+                <label for="category-filter" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Categoría:</label>
+                <select id="category-filter" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    <option value="all">Todas</option>
                     <option value="Restaurante">Restaurante</option>
-                    <option value="Parque Nacional">Parque Nacional</option>
+                    <option value="Parque">Parque</option>
                     <option value="Playa">Playa</option>
+                    <option value="Tienda">Tienda</option>
+                    <option value="Hotel">Hotel</option>
                     <option value="Mirador">Mirador</option>
-                    <option value="Ciudad">Ciudad</option>
                     <option value="Otro">Otro</option>
                 </select>
             </div>
-            <div class="mb-4 flex gap-2">
-                 <button id="exportBtn" class="btn-io flex-1">
-                     <i class="fas fa-file-export mr-1"></i>Exportar JSON
-                 </button>
-                 <button id="importBtn" class="btn-io flex-1">
-                     <i class="fas fa-file-import mr-1"></i>Importar JSON
-                 </button>
-                 <input type="file" id="importFile" accept=".json">
-            </div>
-            <ul id="placesList" class="space-y-2">
-                <li class="text-gray-400 italic p-3 text-center">Cargando lugares...</li>
+            <ul id="places-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <li class="text-center text-gray-500 py-4">No hay lugares guardados.</li>
             </ul>
+            <div class="p-3 border-t flex gap-2">
+                <button id="export-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-150 flex items-center justify-center gap-1">
+                    <i class="fas fa-download"></i> Exportar
+                </button>
+                <button id="import-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-150 flex items-center justify-center gap-1">
+                    <i class="fas fa-upload"></i> Importar
+                </button>
+                <input type="file" id="import-file" accept=".json" class="hidden">
+            </div>
         </aside>
+
+        <div id="map" class="flex-1 z-10"></div>
     </div>
 
-    <div id="placeModal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm overflow-y-auto h-full w-full z-[1001] hidden items-center justify-center p-3">
-        <div class="relative bg-gray-800 w-full max-w-md mx-auto rounded-xl shadow-xl modal-content border border-gray-700">
-            <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700 px-5 pt-5">
-                <h3 class="text-xl font-semibold text-gray-100" id="modalTitle">Añadir Lugar</h3>
-                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-200 transition duration-150 text-xl">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+    <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <form id="place-form" class="p-6 space-y-4">
+                <input type="hidden" id="place-id"> <input type="hidden" id="place-lat">
+                <input type="hidden" id="place-lng">
 
-            <div class="px-5 pb-5">
-                 <form id="placeForm" class="mt-2 space-y-4">
-                    <input type="hidden" id="placeId">
-                    <input type="hidden" id="placeLat">
-                    <input type="hidden" id="placeLng">
+                <h3 id="modal-title" class="text-xl font-semibold text-gray-800 mb-4">Añadir Nuevo Lugar</h3>
 
-                    <div>
-                        <label for="placeName" class="block text-sm font-medium text-gray-300 mb-1">Nombre</label>
-                        <input type="text" id="placeName" name="placeName" required placeholder="Ej: Volcán Poás">
+                <div>
+                    <label for="place-name" class="block text-sm font-medium text-gray-700">Nombre <span class="text-red-500">*</span></label>
+                    <input type="text" id="place-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label for="place-notes" class="block text-sm font-medium text-gray-700">Notas/Descripción</label>
+                    <textarea id="place-notes" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                     <p id="address-loading-message" class="mt-1 hidden">Buscando dirección...</p> </div>
+
+                <div>
+                    <label for="place-category" class="block text-sm font-medium text-gray-700">Categoría</label>
+                    <select id="place-category" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option>Restaurante</option>
+                        <option>Parque</option>
+                        <option>Playa</option>
+                        <option>Tienda</option>
+                        <option>Hotel</option>
+                        <option>Mirador</option>
+                        <option>Otro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Calificación</label>
+                    <div id="place-rating" class="mt-1 flex space-x-1 star-rating">
+                        <i class="far fa-star" data-value="1"></i>
+                        <i class="far fa-star" data-value="2"></i>
+                        <i class="far fa-star" data-value="3"></i>
+                        <i class="far fa-star" data-value="4"></i>
+                        <i class="far fa-star" data-value="5"></i>
                     </div>
+                    <input type="hidden" id="place-rating-value" value="0">
+                </div>
 
-                    <div>
-                        <label for="placeNotes" class="block text-sm font-medium text-gray-300 mb-1">Notas / Descripción</label>
-                        <textarea id="placeNotes" name="placeNotes" rows="3" placeholder="Info encontrada o notas personales..."></textarea>
-                        <p id="infoLoadingIndicator" class="text-xs text-teal-400 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Buscando info...</p>
-                    </div>
+                <div>
+                    <label for="place-visited" class="block text-sm font-medium text-gray-700">Fecha de Visita</label>
+                    <input type="date" id="place-visited" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="placeCategory" class="block text-sm font-medium text-gray-300 mb-1">Categoría</label>
-                            <select id="placeCategory" name="placeCategory">
-                                <option value="Otro">Otro</option>
-                                <option value="Restaurante">Restaurante</option>
-                                <option value="Parque Nacional">Parque Nacional</option>
-                                <option value="Playa">Playa</option>
-                                <option value="Mirador">Mirador</option>
-                                <option value="Ciudad">Ciudad</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="placeRating" class="block text-sm font-medium text-gray-300 mb-1">Calificación</label>
-                            <select id="placeRating" name="placeRating">
-                                <option value="0">Sin calificar</option>
-                                <option value="1">⭐</option>
-                                <option value="2">⭐⭐</option>
-                                <option value="3">⭐⭐⭐</option>
-                                <option value="4">⭐⭐⭐⭐</option>
-                                <option value="5">⭐⭐⭐⭐⭐</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="placeDate" class="block text-sm font-medium text-gray-300 mb-1">Fecha Visita</label>
-                        <input type="date" id="placeDate" name="placeDate" style="color-scheme: dark;">
-                    </div>
-
-                    <div class="pt-4 border-t border-gray-700 mt-6">
-                        <button type="submit" id="savePlaceBtn"
-                                class="w-full px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition duration-200 ease-in-out flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 text-white bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 focus:ring-teal-500">
-                            <i class="fas fa-save flex-shrink-0"></i><span>Guardar Lugar</span>
-                        </button>
-                    </div>
-                </form>
-                 <div class="mt-4 flex flex-wrap justify-end gap-3">
-                     <button type="button" id="sharePlaceBtn"
-                             class="px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition duration-200 ease-in-out flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 text-white bg-purple-600 hover:bg-purple-700 focus:ring-purple-500 hidden">
-                          <i class="fas fa-share-alt flex-shrink-0"></i><span>Compartir</span>
-                     </button>
-                     <button type="button" id="shareWazeBtn"
-                             class="px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition duration-200 ease-in-out flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 hidden">
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C7.48 0 4.01 3.47 4.01 7.75c0 1.43.4 2.76 1.1 3.95l5.17 11.94c.25.58.8.96 1.42.96s1.17-.38 1.42-.96l5.17-11.94c.7-1.19 1.1-2.52 1.1-3.95C19.99 3.47 16.52 0 12 0zm0 11.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 4.5 12 4.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
-                         <span>Waze</span>
-                     </button>
-                      <button type="button" id="deletePlaceBtn"
-                              class="px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition duration-200 ease-in-out flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 text-white bg-red-600 hover:bg-red-700 focus:ring-red-500 hidden">
-                          <i class="fas fa-trash flex-shrink-0"></i><span>Eliminar</span>
-                     </button>
-                 </div>
-            </div>
+                <div class="pt-4 space-y-3">
+                     <button type="submit" id="save-place-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-150 text-lg">
+                        Guardar Lugar
+                    </button>
+                     <div class="flex gap-3">
+                         <button type="button" id="share-place-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden">
+                             <i class="fas fa-share-alt"></i> Compartir
+                         </button>
+                         <button type="button" id="delete-place-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 hidden">
+                            <i class="fas fa-trash"></i> Eliminar
+                         </button>
+                     </div>
+                     <button type="button" id="cancel-modal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-150">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
 
     <script>
-        // --- Global Variables ---
+        // --- Variables Globales ---
         let map;
-        let places = []; // Array to hold place objects
-        let markers = L.layerGroup(); // Layer group for map markers
-        const costaRicaBounds = L.latLngBounds(L.latLng(8.0, -85.9), L.latLng(11.2, -82.5)); // Map bounds
-        const defaultCenter = [9.9333, -84.0833]; // San José coordinates
-        const defaultZoom = 8;
-        let layerControl; // Leaflet layer control
-        let currentWazeListener = null; // Listener for Waze button
-        let currentShareListener = null; // Listener for Share button
-        let currentFetchAbortController = null; // Abort controller for Nominatim fetch
-        let currentFindMeMarker = null; // Marker for user's current location
+        let places = []; // Array para guardar los lugares
+        let markers = {}; // Objeto para guardar referencias a los marcadores de Leaflet
+        let currentEditingId = null; // ID del lugar que se está editando
+        let currentLocationMarker = null; // Marcador para la ubicación actual
+        const COSTA_RICA_CENTER = [9.7489, -83.7534]; // Centro aproximado de Costa Rica
+        const DEFAULT_ZOOM = 8;
+        const LOCAL_STORAGE_KEY = 'costaRicaPlacesApp';
 
-        // --- DOM Elements ---
-        const placeModal = document.getElementById('placeModal');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const placeForm = document.getElementById('placeForm');
-        const placesListElement = document.getElementById('placesList');
-        const categoryFilter = document.getElementById('categoryFilter');
-        const findMeBtn = document.getElementById('findMeBtn');
-        const toggleListBtn = document.getElementById('toggleListBtn');
+        // --- Elementos del DOM ---
         const sidebar = document.getElementById('sidebar');
-        const deletePlaceBtn = document.getElementById('deletePlaceBtn');
-        const shareWazeBtn = document.getElementById('shareWazeBtn');
-        const sharePlaceBtn = document.getElementById('sharePlaceBtn');
-        const messageBox = document.getElementById('messageBox');
-        const mapContainer = document.getElementById('mapContainer');
-        const infoLoadingIndicator = document.getElementById('infoLoadingIndicator');
-        const modalTitle = document.getElementById('modalTitle');
-        const placeIdInput = document.getElementById('placeId');
-        const placeLatInput = document.getElementById('placeLat');
-        const placeLngInput = document.getElementById('placeLng');
-        const placeNameInput = document.getElementById('placeName');
-        const placeNotesInput = document.getElementById('placeNotes');
-        const placeCategoryInput = document.getElementById('placeCategory');
-        const placeRatingInput = document.getElementById('placeRating');
-        const placeDateInput = document.getElementById('placeDate');
-        const savePlaceBtn = document.getElementById('savePlaceBtn'); // Keep this reference
-        const exportBtn = document.getElementById('exportBtn');
-        const importBtn = document.getElementById('importBtn');
-        const importFileInput = document.getElementById('importFile');
+        const toggleListBtn = document.getElementById('toggle-list-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+        const locateMeBtn = document.getElementById('locate-me-btn');
+        const placesListElement = document.getElementById('places-list');
+        const categoryFilter = document.getElementById('category-filter');
+        const placeModal = document.getElementById('place-modal');
+        const placeForm = document.getElementById('place-form');
+        const modalTitle = document.getElementById('modal-title');
+        const placeIdInput = document.getElementById('place-id');
+        const placeLatInput = document.getElementById('place-lat');
+        const placeLngInput = document.getElementById('place-lng');
+        const placeNameInput = document.getElementById('place-name');
+        const placeNotesInput = document.getElementById('place-notes');
+        const addressLoadingMessage = document.getElementById('address-loading-message');
+        const placeCategoryInput = document.getElementById('place-category');
+        const placeRatingElement = document.getElementById('place-rating');
+        const placeRatingValueInput = document.getElementById('place-rating-value');
+        const placeVisitedInput = document.getElementById('place-visited');
+        const savePlaceBtn = document.getElementById('save-place-btn');
+        const cancelModalBtn = document.getElementById('cancel-modal-btn');
+        const deletePlaceBtn = document.getElementById('delete-place-btn');
+        const sharePlaceBtn = document.getElementById('share-place-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const importBtn = document.getElementById('import-btn');
+        const importFileInput = document.getElementById('import-file');
 
+        // --- Funciones ---
 
-        // --- Functions ---
-         /**
-         * Shows a temporary message to the user.
-         * @param {string} text - The message text.
-         * @param {number} [duration=3000] - How long the message stays visible (ms).
-         */
-        function showMessage(text, duration = 3000) {
-            messageBox.textContent = text;
-            messageBox.classList.remove('hidden');
-            if (messageBox.timer) clearTimeout(messageBox.timer);
-            messageBox.timer = setTimeout(() => {
-                messageBox.classList.add('hidden');
-                messageBox.timer = null;
-            }, duration);
-        }
-
-        /**
-         * Initializes the Leaflet map and its controls.
-         */
+        // Inicializar Mapa Leaflet
         function initMap() {
-            map = L.map('map', {
-                center: defaultCenter,
-                zoom: defaultZoom,
-                maxBounds: costaRicaBounds,
-                maxBoundsViscosity: 0.9,
-                zoomControl: false
+            map = L.map('map').setView(COSTA_RICA_CENTER, DEFAULT_ZOOM);
+
+            // Capas base (Tipos de mapa)
+            const osmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             });
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-            // Base Layers
-            const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri', minZoom: 7, maxZoom: 18 });
-            const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', minZoom: 7, maxZoom: 19 });
-            const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)' });
-            const baseMaps = { "Estándar": osmStandard, "Satélite": esriSatellite, "Topográfico": openTopoMap };
-            osmStandard.addTo(map);
-
-            // Overlay Layer (Labels)
-            const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { attribution: '', minZoom: 7, maxZoom: 19, pane: 'overlayPane' });
-            const overlayMaps = { "<span class='text-gray-200'>Etiquetas</span>": esriLabels };
-
-            // Layer Control
-            layerControl = L.control.layers(baseMaps, overlayMaps, { position: 'bottomleft', collapsed: true }).addTo(map);
-            map.on('baselayerchange', function (e) {
-                if (e.name === 'Satélite' && !map.hasLayer(esriLabels)) map.addLayer(esriLabels);
-                map.getContainer().style.backgroundColor = '#ffffff';
+            const satelliteTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	            attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            });
+             const topoTile = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+	            maxZoom: 17,
+	            attribution: 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
             });
 
-            markers.addTo(map);
+            osmTile.addTo(map); // Capa por defecto
+
+            const baseMaps = {
+                "Estándar": osmTile,
+                "Satélite": satelliteTile,
+                "Topográfico": topoTile
+            };
+
+            // Capa para las etiquetas (opcional)
+            const cartoLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+	            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+	            subdomains: 'abcd',
+	            maxZoom: 20,
+                pane: 'overlayPane' // Asegura que esté sobre las capas base
+            });
+
+            const overlayMaps = {
+                "Etiquetas": cartoLabels
+            };
+
+            // Control de Capas
+            L.control.layers(baseMaps, overlayMaps, { collapsed: true }).addTo(map);
+
+            // Evento de clic en el mapa para añadir lugar
             map.on('click', onMapClick);
-            loadPlaces();
-            handleResize();
 
-            // Event Listeners for IO features
-            exportBtn.addEventListener('click', exportToJson);
-            importBtn.addEventListener('click', () => importFileInput.click());
-            importFileInput.addEventListener('change', importFromJson);
-            // Add listeners for the action buttons (delete, share, waze) if they exist
-            deletePlaceBtn.addEventListener('click', deletePlace);
-            // Listeners for sharePlaceBtn and shareWazeBtn are added dynamically in openPlaceModal
+            // Cargar lugares guardados al inicio
+            loadPlaces();
         }
 
+        // Manejar clic en el mapa
+        function onMapClick(e) {
+            const { lat, lng } = e.latlng;
+            openModalForNewPlace(lat, lng);
+        }
 
-        /**
-         * Fetches place information from Nominatim API.
-         * @param {number} lat - Latitude.
-         * @param {number} lng - Longitude.
-         */
-        async function fetchPlaceInfo(lat, lng) {
-            if (currentFetchAbortController) currentFetchAbortController.abort();
-            currentFetchAbortController = new AbortController();
-            const signal = currentFetchAbortController.signal;
-            infoLoadingIndicator.classList.remove('hidden');
-            const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es&zoom=18`;
+        // Función para obtener detalles de dirección (Geocodificación Inversa)
+        async function fetchAddressDetails(lat, lng) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=es&addressdetails=1`; // Añadido addressdetails=1
 
             try {
-                const response = await fetch(apiUrl, { signal });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
                 const data = await response.json();
-                if (signal.aborted) return;
-                console.log("Nominatim Response:", data);
-                if (data && data.display_name) {
-                    const currentNotes = placeNotesInput.value;
-                    if (!currentNotes.includes(data.display_name)) {
-                         placeNotesInput.value = `${data.display_name}${currentNotes ? '\n\n' + currentNotes : ''}`;
-                         showMessage("Info del lugar añadida a notas.");
-                    }
-                    if (!placeNameInput.value && (data.name || data.address?.road || data.address?.neighbourhood || data.address?.suburb)) {
-                        placeNameInput.value = data.name || data.address.road || data.address.neighbourhood || data.address.suburb || '';
-                    }
-                } else { showMessage("No se encontró información detallada.", 3000); }
+                // Devolver el objeto completo para extraer más detalles si es necesario
+                return data;
             } catch (error) {
-                 if (error.name !== 'AbortError') {
-                    console.error("Error fetching from Nominatim:", error);
-                    showMessage("Error buscando información del lugar.", 3000);
-                 }
-            } finally {
-                if (!signal.aborted) {
-                    infoLoadingIndicator.classList.add('hidden');
-                    currentFetchAbortController = null;
-                }
+                console.error("Error al obtener la dirección:", error);
+                return null;
             }
         }
 
-        /**
-         * Handles clicks on the map to add a new place.
-         * @param {LeafletEvent} e - The Leaflet click event.
-         */
-        function onMapClick(e) {
-            if (e.originalEvent.target.closest('.leaflet-control') || e.originalEvent.target.closest('.leaflet-marker-icon') || e.originalEvent.target.closest('.leaflet-popup')) return;
-            openPlaceModal(null, e.latlng.lat, e.latlng.lng);
+        // Función para obtener la fecha actual en formato YYYY-MM-DD
+        function getCurrentDateString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Meses son 0-indexados
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
-        /**
-         * Opens the modal to add or edit a place.
-         * @param {object|null} place - The place object to edit, or null to add.
-         * @param {number|null} lat - Latitude for a new place.
-         * @param {number|null} lng - Longitude for a new place.
-         */
-        function openPlaceModal(place = null, lat = null, lng = null) {
+        // MODIFICADO: Abrir modal para un nuevo lugar (ahora es async y autocompleta)
+        async function openModalForNewPlace(lat, lng) {
+            currentEditingId = null;
             placeForm.reset();
+            resetRatingStars();
             placeIdInput.value = '';
-            // Hide action buttons initially
+            placeLatInput.value = lat;
+            placeLngInput.value = lng;
+            modalTitle.textContent = 'Añadir Nuevo Lugar';
+            savePlaceBtn.textContent = 'Guardar Lugar';
             deletePlaceBtn.classList.add('hidden');
-            shareWazeBtn.classList.add('hidden');
             sharePlaceBtn.classList.add('hidden');
-            infoLoadingIndicator.classList.add('hidden');
 
-            // Clean up previous listeners
-            if (currentWazeListener) shareWazeBtn.removeEventListener('click', currentWazeListener);
-            currentWazeListener = null;
-            if (currentShareListener) sharePlaceBtn.removeEventListener('click', currentShareListener);
-            currentShareListener = null;
-            if (currentFetchAbortController) currentFetchAbortController.abort();
-            currentFetchAbortController = null;
+            // **NUEVO: Establecer fecha de visita actual**
+            placeVisitedInput.value = getCurrentDateString();
 
-            const canShare = 'share' in navigator;
+            // Mostrar mensaje de carga y ocultar campo de notas temporalmente
+            placeNotesInput.value = '';
+            placeNameInput.value = ''; // Limpiar nombre también
+            placeNotesInput.classList.add('hidden');
+            addressLoadingMessage.classList.remove('hidden');
+            placeModal.classList.remove('hidden');
 
-            if (place) { // Editing
-                modalTitle.textContent = 'Editar Lugar';
-                placeIdInput.value = place.id;
-                placeLatInput.value = place.lat;
-                placeLngInput.value = place.lng;
-                placeNameInput.value = place.name;
-                placeNotesInput.value = place.notes;
-                placeCategoryInput.value = place.category;
-                placeRatingInput.value = place.rating;
-                placeDateInput.value = place.date;
-                // Show delete button when editing
-                deletePlaceBtn.classList.remove('hidden');
+            // Intentar obtener la dirección (ahora devuelve el objeto completo)
+            const addressData = await fetchAddressDetails(lat, lng);
 
-                // Show action buttons if coordinates exist
-                if (place.lat && place.lng) {
-                    shareWazeBtn.classList.remove('hidden');
-                    currentWazeListener = () => shareWithWaze(place.lat, place.lng);
-                    shareWazeBtn.addEventListener('click', currentWazeListener);
+            // Ocultar mensaje de carga y mostrar campo de notas
+            addressLoadingMessage.classList.add('hidden');
+            placeNotesInput.classList.remove('hidden');
 
-                    if (canShare) {
-                        sharePlaceBtn.classList.remove('hidden');
-                        currentShareListener = () => sharePlace(place);
-                        sharePlaceBtn.addEventListener('click', currentShareListener);
-                    }
-                }
-            } else if (lat !== null && lng !== null) { // Adding from map
-                modalTitle.textContent = 'Añadir Nuevo Lugar';
-                placeLatInput.value = lat.toFixed(6);
-                placeLngInput.value = lng.toFixed(6);
-                placeDateInput.valueAsDate = new Date();
-                fetchPlaceInfo(lat, lng);
-            } else { // Adding without location (fallback)
-                 modalTitle.textContent = 'Añadir Lugar';
-                 placeDateInput.valueAsDate = new Date();
-                 showMessage("Haz clic en el mapa para establecer la ubicación", 4000);
+            let potentialName = '';
+            let fullAddress = '';
+
+            if (addressData) {
+                fullAddress = addressData.display_name || '';
+                // **NUEVO: Intentar extraer un nombre significativo**
+                // Prioridad: amenity, shop, tourism, historic, natural, building, man_made, leisure
+                const addressDetails = addressData.address || {};
+                potentialName = addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.natural || addressDetails.building || addressDetails.man_made || addressDetails.leisure || addressDetails.road || ''; // Último recurso: la calle
+
+                // Poner dirección en notas
+                placeNotesInput.value = `Dirección aprox.: ${fullAddress}\n--------------------\n`;
+            } else {
+                placeNotesInput.placeholder = "No se pudo obtener la dirección automáticamente. Añade tus notas aquí.";
             }
 
-            placeModal.classList.remove('hidden');
-            placeModal.classList.add('flex');
-            setTimeout(() => placeNameInput.focus(), 100);
+            // **NUEVO: Establecer nombre y foco**
+            if (potentialName) {
+                placeNameInput.value = potentialName;
+                placeNotesInput.focus(); // Si encontramos nombre, enfocar notas
+            } else {
+                 placeNameInput.focus(); // Si no, enfocar nombre para que el usuario lo llene
+            }
         }
 
-        /**
-         * Closes the place modal and cleans up listeners.
-         */
+        // Abrir modal para editar un lugar existente (sin cambios aquí)
+        function openModalForEditing(placeId) {
+            const place = places.find(p => p.id === placeId);
+            if (!place) return;
+
+            currentEditingId = placeId;
+            placeForm.reset();
+            resetRatingStars();
+
+            addressLoadingMessage.classList.add('hidden');
+            placeNotesInput.classList.remove('hidden');
+            placeNotesInput.placeholder = "";
+
+            placeIdInput.value = place.id;
+            placeLatInput.value = place.lat;
+            placeLngInput.value = place.lng;
+            placeNameInput.value = place.name;
+            placeNotesInput.value = place.notes || '';
+            placeCategoryInput.value = place.category || 'Otro';
+            // **IMPORTANTE: NO sobreescribir la fecha guardada al editar**
+            placeVisitedInput.value = place.visitedDate || '';
+            setRatingStars(place.rating || 0);
+
+            modalTitle.textContent = 'Editar Lugar';
+            savePlaceBtn.textContent = 'Guardar Cambios';
+            deletePlaceBtn.classList.remove('hidden');
+            if ('share' in navigator) {
+                sharePlaceBtn.classList.remove('hidden');
+            } else {
+                 sharePlaceBtn.classList.add('hidden');
+            }
+            placeModal.classList.remove('hidden');
+            placeNameInput.focus(); // Enfocar nombre al editar
+        }
+
+        // Cerrar el modal
         function closeModal() {
             placeModal.classList.add('hidden');
-            placeModal.classList.remove('flex');
-            // Clean up listeners
-            if (currentWazeListener) shareWazeBtn.removeEventListener('click', currentWazeListener);
-            currentWazeListener = null;
-            if (currentShareListener) sharePlaceBtn.removeEventListener('click', currentShareListener);
-            currentShareListener = null;
-            if (currentFetchAbortController) {
-                currentFetchAbortController.abort();
-                infoLoadingIndicator.classList.add('hidden');
-            }
-            currentFetchAbortController = null;
-            placeForm.reset();
+            currentEditingId = null;
+            addressLoadingMessage.classList.add('hidden');
+            placeNotesInput.classList.remove('hidden');
+            placeNotesInput.placeholder = "";
         }
 
-        /**
-         * Saves the place data (new or edited) to localStorage.
-         * @param {Event} e - The form submit event.
-         */
-        function savePlace(e) {
-            e.preventDefault(); // Prevent default form submission which reloads the page
-            const id = placeIdInput.value;
+        // Guardar lugar (nuevo o editado) - Sin cambios relevantes aquí
+        function savePlace(event) {
+            event.preventDefault();
+
+            const id = placeIdInput.value || `place_${Date.now()}`;
             const lat = parseFloat(placeLatInput.value);
             const lng = parseFloat(placeLngInput.value);
             const name = placeNameInput.value.trim();
             const notes = placeNotesInput.value.trim();
             const category = placeCategoryInput.value;
-            const rating = placeRatingInput.value;
-            const date = placeDateInput.value;
+            const rating = parseInt(placeRatingValueInput.value, 10);
+            const visitedDate = placeVisitedInput.value; // Ya tiene el valor correcto (nuevo o editado)
 
-            if (!name) { showMessage("El nombre es obligatorio.", 3000); return; }
-            if (isNaN(lat) || isNaN(lng)) { showMessage("Ubicación inválida. Haz clic en el mapa.", 3000); return; }
+            if (!name) {
+                alert('El nombre del lugar es obligatorio.');
+                placeNameInput.focus();
+                return;
+            }
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Error: Coordenadas inválidas.');
+                return;
+            }
 
-            const placeData = { id: id || Date.now().toString(), lat, lng, name, notes, category, rating, date };
-            const existingIndex = places.findIndex(p => p.id === placeData.id);
+            const placeData = { id, lat, lng, name, notes, category, rating, visitedDate };
 
-            if (existingIndex > -1) {
-                places[existingIndex] = placeData;
-                showMessage("Lugar actualizado con éxito");
+            if (currentEditingId) {
+                const index = places.findIndex(p => p.id === currentEditingId);
+                if (index > -1) {
+                    places[index] = placeData;
+                }
             } else {
                 places.push(placeData);
-                showMessage("Lugar guardado con éxito");
             }
 
-            try {
-                localStorage.setItem('myTravelLogPlaces', JSON.stringify(places));
-            } catch (error) {
-                console.error("Error saving to localStorage:", error);
-                showMessage("Error al guardar en el dispositivo.", 5000);
-                return; // Don't proceed if saving failed
-            }
-            renderPlaces(); // Update map and list
-            closeModal(); // Close modal on successful save
+            savePlacesToLocalStorage();
+            renderPlaces();
+            closeModal();
         }
 
-
-        /**
-         * Deletes the currently selected place from localStorage.
-         */
+        // Eliminar lugar - Sin cambios
         function deletePlace() {
-            const idToDelete = placeIdInput.value;
-            if (!idToDelete) return; // Should not happen if button is only visible when editing
-            const placeName = placeNameInput.value || "este lugar";
-            if (confirm(`¿Estás seguro de que quieres eliminar "${placeName}"? Esta acción no se puede deshacer.`)) {
-                places = places.filter(p => p.id !== idToDelete);
-                try {
-                    localStorage.setItem('myTravelLogPlaces', JSON.stringify(places));
-                } catch (error) {
-                     console.error("Error saving to localStorage after delete:", error);
-                     showMessage("Error al eliminar del dispositivo.", 5000);
-                     return; // Don't close modal if saving failed
-                }
-                renderPlaces(); // Update map and list
-                closeModal(); // Close modal after deletion
-                showMessage("Lugar eliminado");
+            if (!currentEditingId) return;
+
+            if (confirm(`¿Estás seguro de que quieres eliminar "${placeNameInput.value}"?`)) {
+                places = places.filter(p => p.id !== currentEditingId);
+                savePlacesToLocalStorage();
+                renderPlaces();
+                closeModal();
             }
         }
 
-        /**
-         * Loads places from localStorage.
-         */
+        // Compartir lugar - Sin cambios
+        function sharePlace() {
+            if (!currentEditingId || !('share' in navigator)) return;
+            const place = places.find(p => p.id === currentEditingId);
+            if (!place) return;
+            const shareData = {
+                title: `Visité: ${place.name}`,
+                text: `Mira este lugar que marqué en Costa Rica: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes : ''}`,
+                url: `https://maps.google.com/?q=${place.lat},${place.lng}`
+            };
+            navigator.share(shareData)
+                .then(() => console.log('Lugar compartido con éxito'))
+                .catch((error) => console.error('Error al compartir:', error));
+        }
+
+        // Guardar lugares en localStorage - Sin cambios
+        function savePlacesToLocalStorage() {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(places));
+        }
+
+        // Cargar lugares desde localStorage - Sin cambios
         function loadPlaces() {
-            const savedPlaces = localStorage.getItem('myTravelLogPlaces');
-            try {
-                places = savedPlaces ? JSON.parse(savedPlaces) : [];
-                if (!Array.isArray(places)) {
-                    console.warn("Invalid data in localStorage, resetting.");
-                    places = [];
-                    localStorage.removeItem('myTravelLogPlaces');
+            const storedPlaces = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedPlaces) {
+                try {
+                    places = JSON.parse(storedPlaces);
+                     if (!Array.isArray(places)) {
+                         console.error("Los datos guardados no son un array. Reiniciando.");
+                         places = [];
+                         savePlacesToLocalStorage();
+                     }
+                } catch (e) {
+                     console.error("Error al parsear lugares guardados. Reiniciando.", e);
+                     places = [];
+                     savePlacesToLocalStorage();
                 }
-                places = places.filter(p => p && typeof p.id === 'string' && typeof p.name === 'string' && typeof p.lat === 'number' && typeof p.lng === 'number');
-            } catch (error) {
-                console.error("Error parsing places from localStorage:", error);
+            } else {
                 places = [];
-                localStorage.removeItem('myTravelLogPlaces');
             }
             renderPlaces();
         }
 
-        /**
-         * Renders the places list and map markers based on current filters.
-         */
-        function renderPlaces() {
-            markers.clearLayers();
+        // Renderizar lugares en el mapa y la lista - Sin cambios relevantes
+        function renderPlaces(filterCategory = 'all') {
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            markers = {};
             placesListElement.innerHTML = '';
-            const selectedCategory = categoryFilter.value;
-            const filteredPlaces = places.filter(place => selectedCategory === 'all' || place.category === selectedCategory);
-            filteredPlaces.sort((a, b) => a.name.localeCompare(b.name));
+
+            const filteredPlaces = filterCategory === 'all'
+                ? places
+                : places.filter(p => p.category === filterCategory);
 
             if (filteredPlaces.length === 0) {
-                const message = selectedCategory === 'all' ? 'No has guardado ningún lugar. ¡Haz clic en el mapa!' : `No hay lugares en "${selectedCategory}".`;
-                placesListElement.innerHTML = `<li class="text-gray-400 italic p-4 text-center">${message}</li>`;
-                return;
+                 placesListElement.innerHTML = `<li class="text-center text-gray-500 py-4 px-2">${filterCategory === 'all' ? 'No hay lugares guardados.' : 'No hay lugares en esta categoría.'}</li>`;
+            } else {
+                filteredPlaces.forEach(place => {
+                    if (typeof place.lat !== 'number' || typeof place.lng !== 'number') {
+                        console.warn("Lugar con coordenadas inválidas omitido:", place);
+                        return;
+                    }
+                    const marker = L.marker([place.lat, place.lng], {
+                         icon: createCustomIcon()
+                    }).addTo(map);
+
+                    let popupContent = `
+                        <div class="font-sans text-sm max-w-xs">
+                            <strong class="text-base block mb-1">${place.name}</strong>
+                            <span class="text-gray-600 block mb-1">Categoría: ${place.category}</span>`;
+                    if (place.rating > 0) {
+                        popupContent += `<span class="text-yellow-500 block mb-1">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</span>`;
+                    }
+                     // Mostrar fecha si existe
+                    if (place.visitedDate) {
+                         popupContent += `<span class="text-xs text-gray-500 block mb-1">Visitado: ${place.visitedDate}</span>`;
+                    }
+                    if (place.notes) {
+                         const previewNotes = place.notes.length > 100 ? place.notes.substring(0, 100) + '...' : place.notes;
+                         popupContent += `<p class="text-xs text-gray-500 my-1">${previewNotes.replace(/\n/g, '<br>')}</p>`;
+                    }
+                    popupContent += `<button class="mt-2 text-blue-600 hover:underline font-medium" onclick="openModalForEditing('${place.id}')">Ver Detalles</button>
+                        </div>`;
+
+                    marker.bindPopup(popupContent, { maxWidth: 250 });
+                    markers[place.id] = marker;
+
+                    const listItem = document.createElement('li');
+                    listItem.className = 'p-3 border-b hover:bg-gray-100 cursor-pointer flex justify-between items-start gap-2';
+                    listItem.innerHTML = `
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-gray-800 truncate">${place.name}</div>
+                            <div class="text-xs text-gray-500">${place.category} ${place.visitedDate ? '- Visitado: ' + place.visitedDate : ''}</div>
+                             ${place.rating > 0 ? `<div class="text-xs text-yellow-500">${'★'.repeat(place.rating)}${'☆'.repeat(5 - place.rating)}</div>` : ''}
+                        </div>
+                         <button class="flex-shrink-0 text-xs text-blue-500 hover:text-blue-700 pt-1 whitespace-nowrap" onclick="event.stopPropagation(); openModalForEditing('${place.id}')">Editar</button>
+                    `;
+                    listItem.addEventListener('click', (e) => {
+                        map.setView([place.lat, place.lng], 15);
+                        setTimeout(() => {
+                             markers[place.id].openPopup();
+                        }, 100);
+                        if (window.innerWidth < 768) {
+                            sidebar.classList.add('-translate-x-full');
+                        }
+                    });
+                    placesListElement.appendChild(listItem);
+                });
             }
+        }
 
-            const redFlagIcon = L.divIcon({ html: '<i class="fas fa-flag red-flag-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [0, 24], popupAnchor: [12, -24] });
-
-            filteredPlaces.forEach(place => {
-                if (isNaN(place.lat) || isNaN(place.lng)) {
-                    console.warn(`Skipping place with invalid coordinates: ${place.name}`);
-                    return;
-                }
-                const popupContent = `<b class="text-base">${place.name}</b><br><span class="text-sm text-gray-300">${place.category}</span><br><button class="viewDetailsBtn" data-id="${place.id}">Ver Detalles</button>`;
-                const marker = L.marker([place.lat, place.lng], { icon: redFlagIcon }).bindPopup(popupContent, { minWidth: 180 }).addTo(markers);
-
-                marker.on('popupopen', (e) => {
-                    const btn = e.popup.getElement().querySelector('.viewDetailsBtn');
-                    if (btn) btn.addEventListener('click', handleViewDetailsClick, { capture: true });
-                });
-                marker.on('popupclose', (e) => {
-                    const btn = e.popup.getElement()?.querySelector('.viewDetailsBtn');
-                    if (btn) btn.removeEventListener('click', handleViewDetailsClick, { capture: true });
-                });
-
-                const listItem = document.createElement('li');
-                listItem.className = 'p-3 border border-gray-700 bg-gray-800 rounded-lg hover:bg-gray-700 cursor-pointer flex justify-between items-center transition duration-150';
-                listItem.innerHTML = `<div class="flex items-center min-w-0 mr-2"><div class="truncate"><strong class="text-teal-400 block truncate text-sm font-semibold">${place.name}</strong><span class="block text-xs text-gray-400 truncate">${place.category} ${place.date ? '- ' + formatDate(place.date) : ''}</span></div></div><i class="fas fa-chevron-right text-gray-500 flex-shrink-0"></i>`;
-                listItem.addEventListener('click', () => {
-                    map.closePopup();
-                    map.setView([place.lat, place.lng], 15);
-                    setTimeout(() => marker.openPopup(), 300);
-                    if (window.innerWidth < 768 && !sidebar.classList.contains('mobile-hidden')) toggleSidebar(true);
-                });
-                placesListElement.appendChild(listItem);
+        // Crear icono personalizado - Sin cambios
+        function createCustomIcon() {
+            return L.divIcon({
+                html: '<i class="fas fa-map-marker-alt fa-2x text-red-600 drop-shadow-md"></i>',
+                className: 'custom-marker-icon',
+                iconSize: [30, 42],
+                iconAnchor: [15, 42],
+                popupAnchor: [0, -45]
             });
         }
 
-        /**
-         * Handles the click event for the "Ver Detalles" button in popups.
-         * @param {Event} event - The click event.
-         */
-        function handleViewDetailsClick(event) {
-            event.stopPropagation();
-            event.preventDefault();
-            const button = event.currentTarget;
-            const placeId = button.getAttribute('data-id');
-            const placeToEdit = places.find(p => p.id === placeId);
-            if (placeToEdit) {
-                map.closePopup();
-                openPlaceModal(placeToEdit);
-            }
-        }
-
-        /**
-         * Opens the Waze app for navigation.
-         * @param {number} lat - Latitude.
-         * @param {number} lon - Longitude.
-         */
-        function shareWithWaze(lat, lon) {
-            if (lat && lon) {
-                const wazeUrl = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
-                showMessage('Abriendo Waze...');
-                window.open(wazeUrl, '_blank');
-            } else { showMessage('Error: Coordenadas inválidas para Waze.', 4000); }
-        }
-
-        /**
-         * Shares place details using the Web Share API.
-         * @param {object} place - The place object to share.
-         */
-        async function sharePlace(place) {
-            // Check for Web Share API support
-            if (!navigator.share) {
-                showMessage("La función de compartir no es soportada por este navegador.", 4000);
+        // Función para centrar el mapa en la ubicación del usuario - Sin cambios
+        function locateUser() {
+            if (!navigator.geolocation) {
+                alert('Tu navegador no soporta la geolocalización.');
                 return;
             }
-             // Validate required place data
-            if (!place || typeof place.lat !== 'number' || typeof place.lng !== 'number' || !place.name) {
-                 showMessage("Faltan datos (nombre o ubicación) para compartir.", 4000);
-                 return;
-            }
-
-            // Corrected Google Maps URL format
-            const googleMapsUrl = `https://www.google.com/maps?q=lat,lng=${place.lat},${place.lng}`;
-            const shareData = {
-                title: `Lugar: ${place.name}`,
-                text: `Echa un vistazo a este lugar que guardé: ${place.name}. ${place.notes ? '\nNotas: ' + place.notes.substring(0, 100) + '...' : ''}`,
-                url: googleMapsUrl
-            };
-
-            try {
-                await navigator.share(shareData);
-                showMessage('Lugar compartido con éxito!');
-            } catch (err) {
-                console.error('Error al compartir:', err);
-                // Don't show error if user cancelled the share action
-                if (err.name !== 'AbortError') {
-                    showMessage(`Error al compartir: ${err.message}`, 4000);
+            locateMeBtn.classList.add('animate-pulse');
+            navigator.geolocation.getCurrentPosition(position => {
+                const { latitude, longitude } = position.coords;
+                map.setView([latitude, longitude], 14);
+                if (currentLocationMarker) {
+                    map.removeLayer(currentLocationMarker);
                 }
-            }
+                 currentLocationMarker = L.marker([latitude, longitude], {
+                    icon: L.divIcon({
+                        className: 'current-location-marker',
+                        iconSize: [16, 16]
+                    })
+                 }).addTo(map);
+                locateMeBtn.classList.remove('animate-pulse');
+            }, error => {
+                console.error("Error obteniendo ubicación: ", error);
+                alert('No se pudo obtener tu ubicación.');
+                locateMeBtn.classList.remove('animate-pulse');
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
         }
 
-
-        /**
-         * Tries to find the user's current location.
-         */
-        function findMe() {
-            findMeBtn.disabled = true;
-            findMeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Buscando...</span>';
-            if ('geolocation' in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        if (currentFindMeMarker) map.removeLayer(currentFindMeMarker);
-                        map.setView([lat, lng], 14);
-                        const icon = L.divIcon({ html: `<span class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 border-2 border-white shadow-md animate-pulse"></span>`, className: '', iconSize: [20, 20], iconAnchor: [10, 10] });
-                        currentFindMeMarker = L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 }).addTo(map).bindPopup("<b>¡Estás aquí!</b><br>Haz clic cerca para guardar.").openPopup();
-                        showMessage("Ubicación encontrada");
-                        findMeBtn.disabled = false;
-                        findMeBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i><span>Encontrarme</span>';
-                    },
-                    (error) => {
-                        console.error("Geolocation Error:", error);
-                        let msg = "Error ubicación.";
-                        if (error.code === 1) msg = "Permiso denegado.";
-                        if (error.code === 2) msg = "No disponible.";
-                        if (error.code === 3) msg = "Tiempo agotado.";
-                        showMessage(msg, 4000);
-                        findMeBtn.disabled = false;
-                        findMeBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i><span>Encontrarme</span>';
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
-            } else {
-                showMessage("Geoloc no soportada.", 4000);
-                findMeBtn.disabled = false;
-                findMeBtn.innerHTML = '<i class="fas fa-location-crosshairs"></i><span>Encontrarme</span>';
-            }
+        // --- Funciones para la Calificación por Estrellas --- (Sin cambios)
+        function setupRatingStars() {
+            const stars = placeRatingElement.querySelectorAll('.fa-star');
+            stars.forEach(star => {
+                star.addEventListener('click', handleStarClick);
+                star.addEventListener('mouseover', handleStarMouseover);
+                star.addEventListener('mouseout', handleStarMouseout);
+            });
+        }
+        function handleStarClick(event) {
+            const value = event.target.getAttribute('data-value');
+            placeRatingValueInput.value = value;
+            setRatingStars(value);
+        }
+        function handleStarMouseover(event) {
+             const value = event.target.getAttribute('data-value');
+             highlightStars(value);
+        }
+        function handleStarMouseout() {
+            setRatingStars(placeRatingValueInput.value);
+        }
+        function highlightStars(value) {
+            const stars = placeRatingElement.querySelectorAll('.fa-star');
+            stars.forEach(star => {
+                const starValue = star.getAttribute('data-value');
+                if (parseInt(starValue) <= parseInt(value)) {
+                    star.classList.remove('far');
+                    star.classList.add('fas', 'selected');
+                } else {
+                    star.classList.remove('fas', 'selected');
+                    star.classList.add('far');
+                }
+            });
+        }
+         function setRatingStars(value) {
+            placeRatingValueInput.value = value;
+            highlightStars(value);
+         }
+        function resetRatingStars() {
+            placeRatingValueInput.value = 0;
+            const stars = placeRatingElement.querySelectorAll('.fa-star');
+            stars.forEach(star => {
+                 star.classList.remove('fas', 'selected');
+                 star.classList.add('far');
+            });
         }
 
-        /**
-         * Toggles the visibility of the sidebar.
-         * @param {boolean} [forceHide] - If true, forces the sidebar to hide.
-         */
-        function toggleSidebar(forceHide = false) {
-             const shouldHide = forceHide || !sidebar.classList.contains('mobile-hidden');
-             if (shouldHide) {
-                 sidebar.classList.add('mobile-hidden');
-                 toggleListBtn.innerHTML = '<i class="fas fa-list"></i><span>Lista</span>';
-                 toggleListBtn.title = "Mostrar lista";
-             } else {
-                 sidebar.classList.remove('mobile-hidden');
-                 toggleListBtn.innerHTML = '<i class="fas fa-times"></i><span>Cerrar</span>';
-                 toggleListBtn.title = "Ocultar lista";
-             }
-             setTimeout(() => map.invalidateSize({ animate: true }), 350);
-        }
-
-        /**
-         * Handles window resize events.
-         */
-        function handleResize() {
-            if (map) map.invalidateSize();
-        }
-
-        /**
-         * Formats a date string (YYYY-MM-DD) to DD/MM/YYYY.
-         * @param {string} dateString - Input date string.
-         * @returns {string} - Formatted date string.
-         */
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            try {
-                const parts = dateString.split('-');
-                return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateString;
-            } catch (e) { return dateString; }
-        }
-
-        /**
-         * Exports the current places array to a JSON file.
-         */
-        function exportToJson() {
+        // --- Funciones de Exportar/Importar --- (Sin cambios)
+        function exportData() {
             if (places.length === 0) {
-                showMessage("No hay lugares para exportar.", 3000);
+                alert("No hay lugares para exportar.");
                 return;
             }
-            try {
-                const placesToExport = places.map(({ imageUrl, ...rest }) => rest);
-                const jsonString = JSON.stringify(placesToExport, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'bitacora_cr_lugares.json';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showMessage("Datos exportados a 'bitacora_cr_lugares.json'");
-            } catch (error) {
-                 console.error("Error exporting JSON:", error);
-                 showMessage("Error al exportar los datos.", 4000);
-            }
+            const dataStr = JSON.stringify(places, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `mis_lugares_cr_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
-
-        /**
-         * Handles the file input change event to import places from JSON.
-         * @param {Event} event - The file input change event.
-         */
-        function importFromJson(event) {
+        function triggerImport() {
+            importFileInput.click();
+        }
+        function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
-
-            if (file.type !== 'application/json') {
-                 showMessage("Por favor selecciona un archivo .json", 4000);
-                 importFileInput.value = '';
-                 return;
+            if (!confirm("Importar este archivo reemplazará todos los lugares guardados actualmente. ¿Continuar?")) {
+                importFileInput.value = '';
+                return;
             }
-
             const reader = new FileReader();
-
             reader.onload = function(e) {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-
-                    if (!Array.isArray(importedData)) {
-                        throw new Error("El archivo JSON no contiene un array de lugares válido.");
-                    }
-
-                    const isValidStructure = importedData.every(p =>
-                        p && typeof p.id === 'string' && typeof p.name === 'string' &&
-                        typeof p.lat === 'number' && typeof p.lng === 'number' &&
-                        typeof p.category === 'string'
-                    );
-
-                    if (!isValidStructure && importedData.length > 0) {
-                         console.warn("La estructura de algunos lugares importados podría ser incorrecta.");
-                    }
-
-
-                    if (confirm(`¿Importar ${importedData.length} lugares desde '${file.name}'? Esto reemplazará todos los lugares actuales.`)) {
-                        places = importedData.filter(p => p && typeof p.id === 'string' && typeof p.name === 'string' && typeof p.lat === 'number' && typeof p.lng === 'number')
-                                             .map(({ imageUrl, ...rest }) => rest);
-
-                        localStorage.setItem('myTravelLogPlaces', JSON.stringify(places));
-                        renderPlaces();
-                        showMessage(`${places.length} lugares importados correctamente.`);
+                    const importedPlaces = JSON.parse(e.target.result);
+                    if (Array.isArray(importedPlaces) && (importedPlaces.length === 0 || (importedPlaces[0].lat && importedPlaces[0].lng && importedPlaces[0].name && importedPlaces[0].id))) {
+                        places = importedPlaces;
+                        savePlacesToLocalStorage();
+                        renderPlaces(categoryFilter.value); // Renderizar con filtro actual
+                        alert(`Se importaron ${places.length} lugares.`);
+                        if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                            sidebar.classList.add('-translate-x-full');
+                        }
                     } else {
-                         showMessage("Importación cancelada.");
+                        alert("Error: El archivo no tiene el formato esperado.");
                     }
-
                 } catch (error) {
-                    console.error("Error importing JSON:", error);
-                    showMessage(`Error al importar: ${error.message}`, 5000);
+                    console.error("Error al parsear JSON:", error);
+                    alert("Error al leer el archivo. Asegúrate de que sea un archivo JSON válido.");
                 } finally {
                      importFileInput.value = '';
                 }
             };
-
             reader.onerror = function() {
-                console.error("Error reading file:", reader.error);
-                showMessage("Error al leer el archivo.", 4000);
-                importFileInput.value = '';
+                 alert("Error al leer el archivo.");
+                 importFileInput.value = '';
             };
-
             reader.readAsText(file);
         }
 
 
-        // --- Initial Event Listeners ---
-        document.addEventListener('DOMContentLoaded', initMap);
-        closeModalBtn.addEventListener('click', closeModal);
-        placeForm.addEventListener('submit', savePlace);
-        categoryFilter.addEventListener('change', renderPlaces);
-        findMeBtn.addEventListener('click', findMe);
-        toggleListBtn.addEventListener('click', () => toggleSidebar());
-        // Delete button listener is now added in initMap if the button exists
-        placeModal.addEventListener('click', (e) => { if (e.target === placeModal) closeModal(); });
-        window.addEventListener('resize', handleResize);
+        // --- Event Listeners --- (Sin cambios relevantes)
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            setupRatingStars();
+
+            toggleListBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+                 setTimeout(() => map.invalidateSize(), 350);
+            });
+            closeSidebarBtn.addEventListener('click', () => {
+                 sidebar.classList.add('-translate-x-full');
+                 setTimeout(() => map.invalidateSize(), 350);
+            });
+            locateMeBtn.addEventListener('click', locateUser);
+            categoryFilter.addEventListener('change', (e) => renderPlaces(e.target.value));
+            placeForm.addEventListener('submit', savePlace);
+            cancelModalBtn.addEventListener('click', closeModal);
+            deletePlaceBtn.addEventListener('click', deletePlace);
+            sharePlaceBtn.addEventListener('click', sharePlace);
+            exportBtn.addEventListener('click', exportData);
+            importBtn.addEventListener('click', triggerImport);
+            importFileInput.addEventListener('change', importData);
+
+             document.addEventListener('click', (event) => {
+                if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full') && !sidebar.contains(event.target) && !toggleListBtn.contains(event.target)) {
+                     sidebar.classList.add('-translate-x-full');
+                     setTimeout(() => map.invalidateSize(), 350);
+                 }
+            });
+
+             window.addEventListener('resize', () => {
+                 map.invalidateSize();
+             });
+        });
 
     </script>
 </body>
