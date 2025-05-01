@@ -379,7 +379,7 @@
         }
 
         /**
-         * Obtiene la fecha actual en formato YYYY-MM-DD.
+         * Obtiene la fecha actual en formato<y_bin_791>YYYY-MM-DD.
          * @returns {string} - La fecha actual formateada.
          */
         function getCurrentDateString() {
@@ -477,6 +477,7 @@
             deletePlaceBtn.classList.remove('hidden'); // Muestra botón eliminar
 
             // Genera y asigna el enlace de Google Maps para "Cómo llegar"
+            // CORRECCIÓN: La URL de Google Maps debe ser diferente
             const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
             modalDirectionsBtn.href = directionsUrl;
             modalDirectionsBtn.classList.remove('hidden'); // Muestra botón "Cómo llegar"
@@ -567,7 +568,7 @@
             const place = places.find(p => p.id === currentEditingId); // Encuentra el lugar
             if (!place) return; // Si no lo encuentra, sale
 
-            // Construye la URL de Google Maps para compartir la ubicación
+            // Construye la URL de Google Maps para compartir la ubicación (vista de mapa)
             const shareUrl = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`;
             // Prepara los datos para compartir
             const shareData = {
@@ -659,7 +660,8 @@
                     // Crea un marcador Leaflet con un icono personalizado
                     const marker = L.marker([place.lat, place.lng], { icon: createCustomIcon() }).addTo(map);
 
-                    // Genera la URL de Google Maps para las direcciones
+                    // Genera la URL de Google Maps para las direcciones (popup)
+                    // CORRECCIÓN: Usar URL para obtener direcciones
                     const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
 
                     // Construye el contenido HTML para el popup del marcador
@@ -1076,14 +1078,3 @@
     </script>
 </body>
 </html>
-```
-
-He eliminado las siguientes líneas de comentarios que aparecían en tu imagen:
-
-* ``
-* `` (Actualicé el comentario interno también)
-* `` (Actualicé el comentario interno también)
-* `` (Actualicé el comentario interno también)
-* `` (Actualicé el comentario interno también)
-
-Ahora esos textos no deberían aparecer en el modal. Prueba a cargar esta versi
