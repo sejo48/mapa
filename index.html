@@ -47,7 +47,12 @@
             margin-right: 8px;
         }
         /* Ocultar scrollbar en modal si no es necesario */
-        #place-modal > div { scrollbar-width: thin; scrollbar-color: #9ca3af #e5e7eb; }
+        /* **MODIFICADO: Aplicar scrollbar a la parte interna del modal** */
+        #place-modal .modal-content-area {
+             scrollbar-width: thin;
+             scrollbar-color: #9ca3af #e5e7eb;
+        }
+
 
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -112,61 +117,65 @@
         <div id="map" class="flex-1 z-10"></div>
     </div>
 
+    {/* Modal - Contenedor principal con padding */}
     <div id="place-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-40 hidden p-4">
-        {/* Contenido del Modal */}
-         <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <form id="place-form" class="p-6 space-y-4">
-                <input type="hidden" id="place-id">
-                <input type="hidden" id="place-lat">
-                <input type="hidden" id="place-lng">
+        {/* **MODIFICADO: Contenedor interno con ancho responsivo y scroll** */}
+         <div class="bg-white rounded-lg shadow-xl w-full sm:max-w-lg md:max-w-xl max-h-[90vh] flex flex-col">
+             {/* Área de contenido con scroll interno */}
+             <div class="modal-content-area overflow-y-auto">
+                 <form id="place-form" class="p-6 space-y-4">
+                     <input type="hidden" id="place-id">
+                     <input type="hidden" id="place-lat">
+                     <input type="hidden" id="place-lng">
 
-                <h3 id="modal-title" class="text-xl font-semibold text-gray-800 mb-4">Añadir Nuevo Lugar</h3>
+                     <h3 id="modal-title" class="text-xl font-semibold text-gray-800 mb-4">Añadir Nuevo Lugar</h3>
 
-                <div>
-                    <label for="place-name" class="block text-sm font-medium text-gray-700">Nombre <span class="text-red-500">*</span></label>
-                    <input type="text" id="place-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400">
-                </div>
-
-                <div>
-                    <label for="place-notes" class="block text-sm font-medium text-gray-700">Notas/Descripción</label>
-                    <textarea id="place-notes" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400"></textarea>
-                     <p id="address-loading-message" class="mt-1 hidden text-gray-500">Buscando dirección...</p>
-                </div>
-
-                <div>
-                    <label for="place-category" class="block text-sm font-medium text-gray-700">Categoría</label>
-                    <select id="place-category" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900">
-                        <option>Restaurante</option> <option>Parque</option> <option>Playa</option>
-                        <option>Tienda</option> <option>Hotel</option> <option>Mirador</option>
-                        <option>Otro</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Calificación</label>
-                    <div id="place-rating" class="mt-1 flex space-x-1 star-rating">
-                        <i class="far fa-star" data-value="1"></i> <i class="far fa-star" data-value="2"></i>
-                        <i class="far fa-star" data-value="3"></i> <i class="far fa-star" data-value="4"></i>
-                        <i class="far fa-star" data-value="5"></i>
-                    </div>
-                    <input type="hidden" id="place-rating-value" value="0">
-                </div>
-
-                <div>
-                    <label for="place-visited" class="block text-sm font-medium text-gray-700">Fecha de Visita</label>
-                    <input type="date" id="place-visited" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900" style="color-scheme: light;">
-                </div>
-
-                <div class="pt-4 space-y-3">
-                     <button type="submit" id="save-place-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-150 text-lg"> Guardar Lugar </button>
-                     <a id="modal-directions-btn" href="#" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-directions"></i> Cómo llegar (Google Maps) </a>
-                     <div class="flex gap-3">
-                         <button type="button" id="share-place-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-share-alt"></i> Compartir </button>
-                         <button type="button" id="delete-place-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 hidden"> <i class="fas fa-trash"></i> Eliminar </button>
+                     <div>
+                         <label for="place-name" class="block text-sm font-medium text-gray-700">Nombre <span class="text-red-500">*</span></label>
+                         <input type="text" id="place-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400">
                      </div>
-                     <button type="button" id="cancel-modal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-150"> Cancelar </button>
-                </div>
-            </form>
+
+                     <div>
+                         <label for="place-notes" class="block text-sm font-medium text-gray-700">Notas/Descripción</label>
+                         <textarea id="place-notes" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400"></textarea>
+                          <p id="address-loading-message" class="mt-1 hidden text-gray-500">Buscando dirección...</p>
+                     </div>
+
+                     <div>
+                         <label for="place-category" class="block text-sm font-medium text-gray-700">Categoría</label>
+                         <select id="place-category" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900">
+                             <option>Restaurante</option> <option>Parque</option> <option>Playa</option>
+                             <option>Tienda</option> <option>Hotel</option> <option>Mirador</option>
+                             <option>Otro</option>
+                         </select>
+                     </div>
+
+                     <div>
+                         <label class="block text-sm font-medium text-gray-700">Calificación</label>
+                         <div id="place-rating" class="mt-1 flex space-x-1 star-rating">
+                             <i class="far fa-star" data-value="1"></i> <i class="far fa-star" data-value="2"></i>
+                             <i class="far fa-star" data-value="3"></i> <i class="far fa-star" data-value="4"></i>
+                             <i class="far fa-star" data-value="5"></i>
+                         </div>
+                         <input type="hidden" id="place-rating-value" value="0">
+                     </div>
+
+                     <div>
+                         <label for="place-visited" class="block text-sm font-medium text-gray-700">Fecha de Visita</label>
+                         <input type="date" id="place-visited" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900" style="color-scheme: light;">
+                     </div>
+                 </form>
+            </div>
+             {/* **MODIFICADO: Área de botones separada (sin scroll)** */}
+             <div class="p-6 pt-4 border-t border-gray-200 space-y-3">
+                  <button type="submit" form="place-form" id="save-place-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-150 text-lg"> Guardar Lugar </button>
+                  <a id="modal-directions-btn" href="#" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-directions"></i> Cómo llegar (Google Maps) </a>
+                  <div class="flex gap-3">
+                      <button type="button" id="share-place-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 flex items-center justify-center gap-1 hidden"> <i class="fas fa-share-alt"></i> Compartir </button>
+                      <button type="button" id="delete-place-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition duration-150 hidden"> <i class="fas fa-trash"></i> Eliminar </button>
+                  </div>
+                  <button type="button" id="cancel-modal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-150"> Cancelar </button>
+             </div>
         </div>
     </div>
 
